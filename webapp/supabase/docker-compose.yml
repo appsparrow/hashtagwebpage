@@ -1,0 +1,84 @@
+# #HashtagWebsite — Supabase Local Stack (Docker)
+#
+# USAGE:
+#   cd bizprospector/supabase
+#   docker compose up -d
+#
+# Services:
+#   Postgres DB:    localhost:5432
+#   PostgREST API:  localhost:54321  ← Supabase URL in the app
+#   pgAdmin UI:     localhost:54323  (login: admin@hw.co / admin)
+#
+# Schema is applied AUTOMATICALLY on first start.
+#
+# In app Settings, set:
+#   Supabase URL:      http://localhost:54321
+#   Supabase Anon Key: localdevkey
+
+version: "3.8"
+
+networks:
+  hashtagwebsite:
+    driver: bridge
+
+services:
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: hw-postgres
+    restart: unless-stopped
+    networks: [hashtagwebsite]
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hashtagwebsite
+      POSTGRES_DB: hashtagwebsite
+    volumes:
+      - hw_pgdata:/var/lib/postgresql/data
+      - ./00_roles.sql:/docker-entrypoint-initdb.d/00_roles.sql  # creates anon/authenticated roles
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql   # creates leads table
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── PostgREST — exposes Postgres as a REST API ───────────────────────────────
+  rest:
+    image: postgrest/postgrest:v12.0.2
+    container_name: hw-postgrest
+    restart: unless-stopped
+    networks: [hashtagwebsite]
+    ports:
+      - "54321:3000"
+    environment:
+      PGRST_DB_URI: "postgres://postgres:hashtagwebsite@db:5432/hashtagwebsite"
+      PGRST_DB_SCHEMA: "public"
+      PGRST_DB_ANON_ROLE: "anon"
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_SERVER_PREFIX: "/rest/v1"   # matches Supabase cloud URL format
+      # No PGRST_JWT_SECRET = no JWT validation, all requests use anon role
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── pgAdmin — visual DB browser (optional) ───────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hw-pgadmin
+    restart: unless-stopped
+    networks: [hashtagwebsite]
+    ports:
+      - "54323:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hw.co
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - hw_pgadmin:/var/lib/pgadmin
+      - ./pgadmin-servers.json:/pgadmin4/servers.json   # pre-connects to local DB
+
+volumes:
+  hw_pgdata:
+  hw_pgadmin:

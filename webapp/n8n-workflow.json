@@ -1,0 +1,420 @@
+{
+  "_readme": "HashtagWebpage — Full Automation Workflow for n8n. Import via: n8n → Workflows → Import from JSON.",
+  "_setup": "Before activating: (1) Set WORKER_URL to your Cloudflare Worker URL, (2) Set SUPABASE_URL + SUPABASE_KEY, (3) Set RESEND_KEY + FROM_EMAIL, (4) Customize SEARCH_TARGETS city/category pairs.",
+
+  "workflows": [
+
+    {
+      "name": "🔍 [HW] 1 — Daily Lead Finder",
+      "_description": "Runs daily at 9am. Searches Google Places via Worker for businesses without websites. Upserts new leads to Supabase.",
+      "nodes": [
+        {
+          "name": "⏰ 9am Daily",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [100, 300],
+          "parameters": {
+            "rule": {
+              "interval": [{ "field": "cronExpression", "expression": "0 9 * * *" }]
+            }
+          }
+        },
+        {
+          "name": "📋 Search Targets",
+          "type": "n8n-nodes-base.set",
+          "position": [280, 300],
+          "parameters": {
+            "mode": "manual",
+            "assignments": {
+              "assignments": [
+                {
+                  "name": "searches",
+                  "value": [
+                    { "city": "Chicago, IL",     "category": "Plumber" },
+                    { "city": "Chicago, IL",     "category": "Electrician" },
+                    { "city": "Houston, TX",     "category": "Landscaping" },
+                    { "city": "Houston, TX",     "category": "HVAC" },
+                    { "city": "Phoenix, AZ",     "category": "Roofing" },
+                    { "city": "Atlanta, GA",     "category": "House Cleaning" },
+                    { "city": "Miami, FL",       "category": "Pest Control" },
+                    { "city": "Dallas, TX",      "category": "Handyman" },
+                    { "city": "Los Angeles, CA", "category": "Landscaping" },
+                    { "city": "Denver, CO",      "category": "Painter" }
+                  ],
+                  "type": "array"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "🔄 Loop Each Search",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [460, 300],
+          "parameters": { "batchSize": 1, "options": {} }
+        },
+        {
+          "name": "🔍 Search via Worker",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [640, 300],
+          "parameters": {
+            "method": "POST",
+            "url": "={{ $vars.WORKER_URL }}/search",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ city: $json.city, category: $json.category }) }}"
+          }
+        },
+        {
+          "name": "📊 Has Results?",
+          "type": "n8n-nodes-base.if",
+          "position": [820, 300],
+          "parameters": {
+            "conditions": {
+              "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.results.length }}",
+                  "rightValue": 0,
+                  "operator": { "type": "number", "operation": "gt" }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "🔀 Split Leads",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [1000, 260],
+          "parameters": { "batchSize": 1, "options": {} }
+        },
+        {
+          "name": "💾 Upsert Lead to Supabase",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1180, 260],
+          "parameters": {
+            "method": "POST",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",          "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization",   "value": "=Bearer {{ $vars.SUPABASE_KEY }}" },
+                { "name": "Content-Type",    "value": "application/json" },
+                { "name": "Prefer",          "value": "resolution=ignore-duplicates" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ id: $json.id, name: $json.name, category: $json.category, city: $json.city, phone: $json.phone, address: $json.address, rating: $json.rating, review_count: $json.reviewCount, has_website: false, stage: 'new', maps_url: $json.mapsUrl, found_at: new Date().toISOString() }) }}"
+          }
+        }
+      ],
+      "connections": {
+        "⏰ 9am Daily":       { "main": [[{ "node": "📋 Search Targets",      "type": "main", "index": 0 }]] },
+        "📋 Search Targets":  { "main": [[{ "node": "🔄 Loop Each Search",    "type": "main", "index": 0 }]] },
+        "🔄 Loop Each Search":{ "main": [[{ "node": "🔍 Search via Worker",   "type": "main", "index": 0 }]] },
+        "🔍 Search via Worker":{ "main": [[{ "node": "📊 Has Results?",       "type": "main", "index": 0 }]] },
+        "📊 Has Results?":    { "main": [[{ "node": "🔀 Split Leads",         "type": "main", "index": 0 }], []] },
+        "🔀 Split Leads":     { "main": [[{ "node": "💾 Upsert Lead to Supabase", "type": "main", "index": 0 }]] }
+      }
+    },
+
+    {
+      "name": "📧 [HW] 2 — Send Preview Emails",
+      "_description": "Runs every 6 hours. Finds new leads that have a preview URL and email address. Sends them the preview link via Resend.",
+      "nodes": [
+        {
+          "name": "⏰ Every 6 Hours",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [100, 300],
+          "parameters": {
+            "rule": {
+              "interval": [{ "field": "hours", "hoursInterval": 6 }]
+            }
+          }
+        },
+        {
+          "name": "📥 Fetch Leads to Email",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [300, 300],
+          "parameters": {
+            "method": "GET",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads?stage=eq.site_generated&email=not.is.null&sent_at=is.null&select=*",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",        "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_KEY }}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "📊 Any to Send?",
+          "type": "n8n-nodes-base.if",
+          "position": [500, 300],
+          "parameters": {
+            "conditions": {
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.length }}",
+                  "rightValue": 0,
+                  "operator": { "type": "number", "operation": "gt" }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "🔀 One Lead at a Time",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [700, 260],
+          "parameters": { "batchSize": 1 }
+        },
+        {
+          "name": "📧 Send via Resend",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [900, 260],
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.resend.com/emails",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "Authorization", "value": "=Bearer {{ $vars.RESEND_KEY }}" },
+                { "name": "Content-Type",  "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ from: $vars.FROM_EMAIL || 'hello@hashtagwebpage.co', to: [$json.email], subject: 'We built a free website for ' + $json.name + ' — take a look!', html: `<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px\"><h2 style=\"color:#6366f1\">Your free website is ready! 🎉</h2><p>Hi ${$json.name} team,</p><p>We noticed you don't have a website yet — so we built one for you, completely free to preview:</p><a href=\"${$json.preview_url}\" style=\"display:inline-block;background:#6366f1;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:16px 0\">View Your Free Website →</a><p style=\"color:#666\">It includes your business info, services, contact form, and mobile-friendly design — hosted on fast Cloudflare servers.</p><p style=\"color:#666\"><strong>Setup: $100</strong> · Hosting: $5/month · Or buy it outright for $200</p><p style=\"color:#999;font-size:12px\">— The HashtagWebpage Team</p></div>` }) }}"
+          }
+        },
+        {
+          "name": "✅ Mark as Sent",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [1100, 260],
+          "parameters": {
+            "method": "PATCH",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads?id=eq.{{ $('🔀 One Lead at a Time').item.json.id }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",        "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_KEY }}" },
+                { "name": "Content-Type",  "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ stage: 'link_sent', sent_at: new Date().toISOString(), follow_up_at: new Date(Date.now() + 7 * 86400000).toISOString() }) }}"
+          }
+        }
+      ],
+      "connections": {
+        "⏰ Every 6 Hours":     { "main": [[{ "node": "📥 Fetch Leads to Email",   "type": "main", "index": 0 }]] },
+        "📥 Fetch Leads to Email": { "main": [[{ "node": "📊 Any to Send?",        "type": "main", "index": 0 }]] },
+        "📊 Any to Send?":      { "main": [[{ "node": "🔀 One Lead at a Time",     "type": "main", "index": 0 }], []] },
+        "🔀 One Lead at a Time":{ "main": [[{ "node": "📧 Send via Resend",        "type": "main", "index": 0 }]] },
+        "📧 Send via Resend":   { "main": [[{ "node": "✅ Mark as Sent",           "type": "main", "index": 0 }]] }
+      }
+    },
+
+    {
+      "name": "🔁 [HW] 3 — Follow-up & Archive",
+      "_description": "Runs daily. Sends follow-up emails to link_sent leads older than 7 days. Archives leads with no response after 14 days.",
+      "nodes": [
+        {
+          "name": "⏰ Daily 10am",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [100, 300],
+          "parameters": {
+            "rule": {
+              "interval": [{ "field": "cronExpression", "expression": "0 10 * * *" }]
+            }
+          }
+        },
+
+        {
+          "name": "📥 Leads Needing Follow-up",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [300, 200],
+          "parameters": {
+            "method": "GET",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads?stage=eq.link_sent&follow_up_at=lt.{{ encodeURIComponent(new Date().toISOString()) }}&email=not.is.null&select=*",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",        "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_KEY }}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "🔀 Each Follow-up Lead",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [500, 200],
+          "parameters": { "batchSize": 1 }
+        },
+        {
+          "name": "📧 Send Follow-up Email",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [700, 200],
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.resend.com/emails",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "Authorization", "value": "=Bearer {{ $vars.RESEND_KEY }}" },
+                { "name": "Content-Type",  "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ from: $vars.FROM_EMAIL || 'hello@hashtagwebpage.co', to: [$json.email], subject: 'Quick follow-up — your free website for ' + $json.name, html: `<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px\"><h2 style=\"color:#6366f1\">Just checking in 👋</h2><p>Hi ${$json.name} team,</p><p>We sent over your free website preview last week and wanted to make sure you saw it:</p><a href=\"${$json.preview_url}\" style=\"display:inline-block;background:#6366f1;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:16px 0\">View Your Website →</a><p style=\"color:#666\">This preview link is still live. If you'd like to keep the site, setup is just $100 with 2 months hosting included.</p><p style=\"color:#666\">No pressure — just reply or call if you have any questions!</p><p style=\"color:#999;font-size:12px\">— The HashtagWebpage Team</p></div>` }) }}"
+          }
+        },
+        {
+          "name": "✅ Mark as Following Up",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [900, 200],
+          "parameters": {
+            "method": "PATCH",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads?id=eq.{{ $('🔀 Each Follow-up Lead').item.json.id }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",        "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_KEY }}" },
+                { "name": "Content-Type",  "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ stage: 'following_up', follow_up_at: new Date(Date.now() + 7 * 86400000).toISOString() }) }}"
+          }
+        },
+
+        {
+          "name": "📥 Cold Leads to Archive",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [300, 450],
+          "parameters": {
+            "method": "GET",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads?stage=eq.following_up&follow_up_at=lt.{{ encodeURIComponent(new Date().toISOString()) }}&select=*",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",        "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_KEY }}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "🔀 Each Cold Lead",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [500, 450],
+          "parameters": { "batchSize": 1 }
+        },
+        {
+          "name": "📁 Archive Cold Lead",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [700, 450],
+          "parameters": {
+            "method": "PATCH",
+            "url": "={{ $vars.SUPABASE_URL }}/rest/v1/leads?id=eq.{{ $json.id }}",
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                { "name": "apikey",        "value": "={{ $vars.SUPABASE_KEY }}" },
+                { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_KEY }}" },
+                { "name": "Content-Type",  "value": "application/json" }
+              ]
+            },
+            "sendBody": true,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify({ stage: 'archived' }) }}"
+          }
+        }
+      ],
+      "connections": {
+        "⏰ Daily 10am":               { "main": [[{ "node": "📥 Leads Needing Follow-up", "type": "main", "index": 0 }, { "node": "📥 Cold Leads to Archive", "type": "main", "index": 0 }]] },
+        "📥 Leads Needing Follow-up":  { "main": [[{ "node": "🔀 Each Follow-up Lead",    "type": "main", "index": 0 }]] },
+        "🔀 Each Follow-up Lead":      { "main": [[{ "node": "📧 Send Follow-up Email",   "type": "main", "index": 0 }]] },
+        "📧 Send Follow-up Email":     { "main": [[{ "node": "✅ Mark as Following Up",   "type": "main", "index": 0 }]] },
+        "📥 Cold Leads to Archive":    { "main": [[{ "node": "🔀 Each Cold Lead",         "type": "main", "index": 0 }]] },
+        "🔀 Each Cold Lead":           { "main": [[{ "node": "📁 Archive Cold Lead",       "type": "main", "index": 0 }]] }
+      }
+    },
+
+    {
+      "name": "🔔 [HW] 4 — Webhook Receiver (Manual Triggers)",
+      "_description": "Receives triggers from the HW dashboard (Quick Actions panel). Handles: daily_search, send_followups, archive_cold.",
+      "nodes": [
+        {
+          "name": "🔔 Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "position": [100, 300],
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "hashtagwebpage",
+            "responseMode": "responseNode"
+          }
+        },
+        {
+          "name": "🔀 Route by Event",
+          "type": "n8n-nodes-base.switch",
+          "position": [300, 300],
+          "parameters": {
+            "dataType": "string",
+            "value1": "={{ $json.body.event }}",
+            "rules": {
+              "rules": [
+                { "value2": "daily_search",    "output": 0 },
+                { "value2": "send_followups",  "output": 1 },
+                { "value2": "archive_cold",    "output": 2 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "✅ Respond OK",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [500, 300],
+          "parameters": {
+            "respondWith": "json",
+            "responseBody": "={{ JSON.stringify({ ok: true, event: $('🔔 Webhook').item.json.body.event, ts: new Date().toISOString() }) }}"
+          }
+        }
+      ],
+      "connections": {
+        "🔔 Webhook":    { "main": [[{ "node": "🔀 Route by Event", "type": "main", "index": 0 }]] },
+        "🔀 Route by Event": { "main": [[{ "node": "✅ Respond OK", "type": "main", "index": 0 }], [{ "node": "✅ Respond OK", "type": "main", "index": 0 }], [{ "node": "✅ Respond OK", "type": "main", "index": 0 }]] }
+      }
+    }
+
+  ],
+
+  "_variables": {
+    "_note": "In n8n, set these as global Variables under Settings → Variables",
+    "WORKER_URL":   "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev",
+    "SUPABASE_URL": "http://localhost:54321",
+    "SUPABASE_KEY": "localdevkey",
+    "RESEND_KEY":   "re_YOUR_KEY",
+    "FROM_EMAIL":   "hello@hashtagwebpage.co"
+  },
+
+  "_automation_schedule": {
+    "Workflow 1 — Lead Finder":    "Daily 9am  → searches Google Places, adds new leads to Supabase",
+    "Workflow 2 — Preview Emails": "Every 6h  → sends preview email to any lead with site + email, marks link_sent",
+    "Workflow 3 — Follow-up":      "Daily 10am → sends follow-up to 7-day non-responders, archives 14-day cold leads",
+    "Workflow 4 — Webhook":        "On-demand → receives triggers from the CEO dashboard Quick Actions"
+  }
+}

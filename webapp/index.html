@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HashtagWebpage — Local Business Lead CRM</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0f172a; }
+    .stage-new            { border-left: 3px solid #6366f1; }
+    .stage-site_generated { border-left: 3px solid #8b5cf6; }
+    .stage-link_sent      { border-left: 3px solid #3b82f6; }
+    .stage-following_up   { border-left: 3px solid #f59e0b; }
+    .stage-customer       { border-left: 3px solid #10b981; }
+    .stage-archived       { border-left: 3px solid #6b7280; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .pulse-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes slideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast { animation: slideIn 0.3s ease-out; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ─────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────
+const APP_NAME = "HashtagWebpage";
+const CF_DEFAULT_PROJECT = "hashtagwebpage";
+
+const MOCK_LEADS = [
+  { id: "ChIJ1", name: "Mike's Plumbing Co", category: "Plumber", city: "Chicago, IL",
+    phone: "(312) 555-0182", address: "4421 N Milwaukee Ave, Chicago, IL 60630",
+    rating: 4.7, reviewCount: 38, hasWebsite: false, stage: "new",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 2,
+    sentAt: null, followUpAt: null, convertedAt: null, previewUrl: null, email: null, notes: "" },
+  { id: "ChIJ2", name: "Green Thumb Landscaping", category: "Landscaping", city: "Austin, TX",
+    phone: "(512) 555-0293", address: "789 Oak Creek Blvd, Austin, TX 78701",
+    rating: 4.9, reviewCount: 112, hasWebsite: false, stage: "site_generated",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 5,
+    sentAt: null, followUpAt: null, convertedAt: null,
+    previewUrl: "https://hashtagwebpage.pages.dev/green-thumb-landscaping-austin-tx",
+    email: null, notes: "" },
+  { id: "ChIJ3", name: "Clean Sweep Maids", category: "House Cleaning", city: "Denver, CO",
+    phone: "(720) 555-0411", address: "220 Blake St, Denver, CO 80205",
+    rating: 4.8, reviewCount: 76, hasWebsite: false, stage: "link_sent",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 7,
+    sentAt: Date.now() - 86400000 * 2, followUpAt: Date.now() + 86400000 * 5,
+    convertedAt: null, previewUrl: "https://hashtagwebpage.pages.dev/clean-sweep-maids-denver-co",
+    email: "info@cleansweep.com", notes: "Owner seemed interested on the phone" },
+  { id: "ChIJ4", name: "Rodriguez Electric", category: "Electrician", city: "Miami, FL",
+    phone: "(305) 555-0574", address: "1100 Brickell Ave, Miami, FL 33131",
+    rating: 4.6, reviewCount: 54, hasWebsite: false, stage: "following_up",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 14,
+    sentAt: Date.now() - 86400000 * 7, followUpAt: Date.now() - 86400000 * 1,
+    convertedAt: null, previewUrl: "https://hashtagwebpage.pages.dev/rodriguez-electric-miami-fl",
+    email: "carlos@rodriguezelectric.com", notes: "Follow up call scheduled" },
+  { id: "ChIJ5", name: "Apex Roofing Solutions", category: "Roofing", city: "Phoenix, AZ",
+    phone: "(602) 555-0638", address: "3250 E Camelback Rd, Phoenix, AZ 85018",
+    rating: 4.5, reviewCount: 29, hasWebsite: false, stage: "customer",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 21,
+    sentAt: Date.now() - 86400000 * 16, followUpAt: null,
+    convertedAt: Date.now() - 86400000 * 3,
+    previewUrl: "https://hashtagwebpage.pages.dev/apex-roofing-solutions-phoenix-az",
+    email: "steve@apexroofing.com", notes: "Paid $100 setup. Monthly hosting $5." },
+  { id: "ChIJ6", name: "Fresh Cut Barbershop", category: "Barber", city: "Atlanta, GA",
+    phone: "(404) 555-0712", address: "567 Peachtree St NE, Atlanta, GA 30308",
+    rating: 4.8, reviewCount: 203, hasWebsite: false, stage: "new",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 1,
+    sentAt: null, followUpAt: null, convertedAt: null, previewUrl: null, email: null, notes: "" },
+  { id: "ChIJ7", name: "Elite Auto Detailing", category: "Car Wash", city: "Las Vegas, NV",
+    phone: "(702) 555-0855", address: "8100 W Flamingo Rd, Las Vegas, NV 89147",
+    rating: 4.3, reviewCount: 88, hasWebsite: false, stage: "archived",
+    mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 30,
+    sentAt: Date.now() - 86400000 * 23, followUpAt: Date.now() - 86400000 * 16,
+    convertedAt: null, previewUrl: null, email: null, notes: "No response after 2 follow-ups" }
+];
+
+const CATEGORIES = [
+  "Plumber","Electrician","Landscaping","House Cleaning","Roofing",
+  "HVAC","Painter","Handyman","Carpenter","Pest Control",
+  "Locksmith","Pool Service","Tree Service","Pressure Washing",
+  "Auto Repair","Barber","Nail Salon","Pet Grooming","Flooring","Concrete"
+];
+
+const STAGES = {
+  new:            { label: "New Lead",   bg: "bg-indigo-500/10",  text: "text-indigo-400",  border: "border-indigo-500/30" },
+  site_generated: { label: "Site Ready", bg: "bg-purple-500/10",  text: "text-purple-400",  border: "border-purple-500/30" },
+  link_sent:      { label: "Link Sent",  bg: "bg-blue-500/10",    text: "text-blue-400",    border: "border-blue-500/30" },
+  following_up:   { label: "Follow-up",  bg: "bg-amber-500/10",   text: "text-amber-400",   border: "border-amber-500/30" },
+  customer:       { label: "Customer ✓", bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
+  archived:       { label: "Archived",   bg: "bg-gray-500/10",    text: "text-gray-400",    border: "border-gray-500/30" }
+};
+
+// ─────────────────────────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────────────────────────
+const store = {
+  getLeads:    () => { try { return JSON.parse(localStorage.getItem("hw_leads") || "null") || MOCK_LEADS; } catch { return MOCK_LEADS; } },
+  saveLeads:   (l) => localStorage.setItem("hw_leads", JSON.stringify(l)),
+  getSettings: () => { try { return JSON.parse(localStorage.getItem("hw_settings") || "{}"); } catch { return {}; } },
+  saveSettings:(s) => localStorage.setItem("hw_settings", JSON.stringify(s))
+};
+
+// ─────────────────────────────────────────────────────────────
+// SUPABASE HELPERS
+// ─────────────────────────────────────────────────────────────
+async function sbFetch(supabaseUrl, key, path, method = "GET", body = null, extraHeaders = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    ...extraHeaders
+  };
+  if (key) { headers["apikey"] = key; headers["Authorization"] = `Bearer ${key}`; }
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(supabaseUrl.replace(/\/$/, "") + "/rest/v1" + path, opts);
+  const text = await res.text();
+  let data; try { data = JSON.parse(text); } catch { data = text; }
+  if (!res.ok) throw new Error(typeof data === "object" ? (data.message || JSON.stringify(data)) : text);
+  return data;
+}
+
+// Map camelCase lead fields → Supabase snake_case columns
+function leadToRow(lead) {
+  return {
+    id:           lead.id,
+    name:         lead.name,
+    category:     lead.category,
+    city:         lead.city,
+    phone:        lead.phone || null,
+    address:      lead.address || "",
+    email:        lead.email || null,
+    rating:       lead.rating || 0,
+    review_count: lead.reviewCount || 0,
+    has_website:  lead.hasWebsite || false,
+    stage:        lead.stage || "new",
+    maps_url:     lead.mapsUrl || null,
+    preview_url:  lead.previewUrl || null,
+    deploy_url:   lead.deployUrl || null,
+    notes:        lead.notes || "",
+    sent_at:      lead.sentAt      ? new Date(lead.sentAt).toISOString()      : null,
+    follow_up_at: lead.followUpAt  ? new Date(lead.followUpAt).toISOString()  : null,
+    converted_at: lead.convertedAt ? new Date(lead.convertedAt).toISOString() : null,
+    found_at:     lead.foundAt     ? new Date(lead.foundAt).toISOString()     : new Date().toISOString(),
+  };
+}
+
+// Map Supabase row → camelCase lead
+function rowToLead(row) {
+  return {
+    id:          row.id,
+    name:        row.name,
+    category:    row.category || "",
+    city:        row.city || "",
+    phone:       row.phone || null,
+    address:     row.address || "",
+    email:       row.email || null,
+    rating:      row.rating || 0,
+    reviewCount: row.review_count || 0,
+    hasWebsite:  row.has_website || false,
+    stage:       row.stage || "new",
+    mapsUrl:     row.maps_url || "#",
+    previewUrl:  row.preview_url || null,
+    deployUrl:   row.deploy_url || null,
+    notes:       row.notes || "",
+    sentAt:      row.sent_at      ? new Date(row.sent_at).getTime()      : null,
+    followUpAt:  row.follow_up_at ? new Date(row.follow_up_at).getTime() : null,
+    convertedAt: row.converted_at ? new Date(row.converted_at).getTime() : null,
+    foundAt:     row.found_at     ? new Date(row.found_at).getTime()     : Date.now(),
+  };
+}
+
+// Upsert a single lead to Supabase (merge-on-conflict by id)
+async function dbSaveLead(lead, settings) {
+  if (!settings.supabaseUrl) return;
+  try {
+    await sbFetch(
+      settings.supabaseUrl, settings.supabaseKey,
+      "/leads", "POST", leadToRow(lead),
+      { "Prefer": "resolution=merge-duplicates" }
+    );
+  } catch(e) {
+    console.warn("[Supabase] Save failed:", e.message);
+  }
+}
+
+// Bulk upsert array of leads
+async function dbSaveLeads(leads, settings) {
+  if (!settings.supabaseUrl || !leads.length) return;
+  try {
+    await sbFetch(
+      settings.supabaseUrl, settings.supabaseKey,
+      "/leads", "POST", leads.map(leadToRow),
+      { "Prefer": "resolution=merge-duplicates" }
+    );
+  } catch(e) {
+    console.warn("[Supabase] Bulk save failed:", e.message);
+  }
+}
+
+// Load ALL leads from Supabase
+async function loadAllFromSupabase(settings) {
+  if (!settings.supabaseUrl) return null;
+  try {
+    const rows = await sbFetch(
+      settings.supabaseUrl, settings.supabaseKey,
+      "/leads?order=found_at.desc&limit=1000", "GET"
+    );
+    return Array.isArray(rows) ? rows.map(rowToLead) : null;
+  } catch(e) {
+    console.warn("[Supabase] Load failed:", e.message);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SLUG + SITE GENERATION
+// ─────────────────────────────────────────────────────────────
+function slugify(name, city) {
+  return (name + "-" + city)
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function generateSiteHTML(lead) {
+  const { name, category, phone = "Call us for a quote", address, city, rating, reviewCount: reviews } = lead;
+
+  const themes = {
+    "Plumber":        { color: "#1e3a8a", accent: "#3b82f6", icon: "🔧", services: ["Pipe Repair & Replacement","Drain Cleaning","Water Heater Install","Emergency Plumbing"] },
+    "Electrician":    { color: "#4c1d95", accent: "#8b5cf6", icon: "⚡", services: ["Panel Upgrades","Outlet & Switch Install","Wiring & Rewiring","Emergency Electrical"] },
+    "Landscaping":    { color: "#14532d", accent: "#22c55e", icon: "🌿", services: ["Lawn Mowing & Edging","Tree & Shrub Trimming","Garden Design","Seasonal Cleanup"] },
+    "House Cleaning": { color: "#0c4a6e", accent: "#0ea5e9", icon: "🧹", services: ["Deep Cleaning","Regular Maintenance","Move-in / Move-out","Post-Construction Clean"] },
+    "Roofing":        { color: "#78350f", accent: "#f59e0b", icon: "🏚️", services: ["Roof Repair","Full Replacement","Roof Inspection","Storm Damage Repair"] },
+    "HVAC":           { color: "#7f1d1d", accent: "#ef4444", icon: "❄️", services: ["AC Repair & Service","Heating Systems","New Installation","Maintenance Plans"] },
+    "Painter":        { color: "#1e3a5f", accent: "#60a5fa", icon: "🎨", services: ["Interior Painting","Exterior Painting","Cabinet Refinishing","Deck Staining"] },
+    "Handyman":       { color: "#1c1917", accent: "#a78bfa", icon: "🔨", services: ["General Repairs","Furniture Assembly","Door & Window Fixes","Odd Jobs"] },
+    "Auto Repair":    { color: "#1c1917", accent: "#94a3b8", icon: "🚗", services: ["Oil & Filter Change","Brake Service","Engine Diagnostics","Tire Rotation"] },
+    "Barber":         { color: "#3b0764", accent: "#a855f7", icon: "✂️", services: ["Haircuts","Beard Trim & Shape","Line-up & Fade","Hot Towel Shave"] },
+    "Nail Salon":     { color: "#831843", accent: "#ec4899", icon: "💅", services: ["Manicure","Pedicure","Gel & Acrylic","Nail Art"] },
+    "Pet Grooming":   { color: "#164e63", accent: "#06b6d4", icon: "🐾", services: ["Bath & Brush","Haircut & Styling","Nail Trim","Ear Cleaning"] },
+    "Tree Service":   { color: "#14532d", accent: "#86efac", icon: "🌳", services: ["Tree Trimming","Tree Removal","Stump Grinding","Emergency Service"] },
+    "Pest Control":   { color: "#451a03", accent: "#fb923c", icon: "🐛", services: ["Inspection","Extermination","Rodent Control","Preventive Treatment"] },
+    "Pool Service":   { color: "#0c4a6e", accent: "#38bdf8", icon: "🏊", services: ["Pool Cleaning","Chemical Balancing","Equipment Repair","Opening & Closing"] },
+  };
+
+  const t = themes[category] || { color: "#1e3a5f", accent: "#6366f1", icon: "⭐", services: ["Professional Service","Licensed & Insured","Free Estimates","Quality Work"] };
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>${name} — ${category} in ${city}</title>
+<meta name="description" content="${name} provides professional ${category.toLowerCase()} services in ${city}. Call today for a free estimate."/>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: system-ui,-apple-system,sans-serif; color:#1a1a2e; }
+header { background:linear-gradient(135deg,${t.color} 0%,${t.color}cc 100%); color:white; padding:70px 20px 60px; text-align:center; }
+header h1 { font-size:clamp(1.8rem,5vw,3rem); font-weight:800; margin-bottom:10px; }
+.sub { font-size:1.1rem; opacity:.85; margin-bottom:24px; }
+.rating-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.15); padding:7px 18px; border-radius:50px; margin-bottom:22px; font-size:.9rem; }
+.btn { display:inline-block; font-weight:700; padding:15px 34px; border-radius:50px; text-decoration:none; font-size:1.05rem; margin:5px; transition:transform .2s,box-shadow .2s; }
+.btn-primary { background:${t.accent}; color:white; box-shadow:0 4px 18px ${t.accent}55; }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 26px ${t.accent}77; }
+.btn-secondary { background:rgba(255,255,255,.15); color:white; border:2px solid rgba(255,255,255,.4); }
+.btn-secondary:hover { background:rgba(255,255,255,.25); }
+section { padding:64px 20px; max-width:960px; margin:0 auto; }
+section h2 { font-size:1.75rem; font-weight:700; color:${t.color}; margin-bottom:10px; }
+.lead-text { color:#4b5563; font-size:1.05rem; margin-bottom:36px; line-height:1.6; }
+.grid-4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; }
+.service-card { background:#f8faff; border-radius:16px; padding:28px 20px; text-align:center; border:1px solid #e2e8f0; transition:transform .2s,box-shadow .2s; }
+.service-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px #0001; }
+.service-card .icon { font-size:2.2rem; margin-bottom:12px; }
+.service-card h3 { font-weight:600; color:${t.color}; font-size:1rem; }
+.why-item { display:flex; align-items:flex-start; gap:14px; padding:20px; background:#f8faff; border-radius:12px; }
+.why-item .wi { font-size:1.5rem; flex-shrink:0; margin-top:2px; }
+.why-item h4 { font-weight:600; color:#1a1a2e; font-size:.95rem; margin-bottom:4px; }
+.why-item p { color:#6b7280; font-size:.85rem; line-height:1.5; }
+.info-bar { background:${t.color}0d; border-top:1px solid ${t.color}22; border-bottom:1px solid ${t.color}22; padding:20px; text-align:center; font-size:.95rem; color:#374151; }
+.info-bar strong { color:${t.color}; }
+.contact-section { background:${t.color}; color:white; padding:72px 20px; text-align:center; }
+.contact-section h2 { font-size:2rem; font-weight:700; color:white; margin-bottom:10px; }
+.contact-section .lead-text { color:rgba(255,255,255,.8); margin-bottom:0; }
+form { max-width:520px; margin:36px auto 0; text-align:left; }
+form label { display:block; font-size:.85rem; color:rgba(255,255,255,.7); margin:14px 0 6px; }
+input,textarea { width:100%; padding:13px 16px; border-radius:10px; border:2px solid transparent; background:rgba(255,255,255,.12); color:white; font-size:1rem; transition:border-color .2s; }
+input::placeholder,textarea::placeholder { color:rgba(255,255,255,.45); }
+input:focus,textarea:focus { outline:none; border-color:${t.accent}; background:rgba(255,255,255,.18); }
+textarea { height:110px; resize:vertical; }
+.submit-btn { width:100%; margin-top:20px; background:${t.accent}; color:white; font-weight:700; padding:15px; border:none; border-radius:10px; font-size:1.05rem; cursor:pointer; transition:opacity .2s; }
+.submit-btn:hover { opacity:.9; }
+#form-status { margin-top:14px; font-size:.9rem; opacity:.85; }
+footer { background:#0f1a2e; color:#64748b; text-align:center; padding:24px 20px; font-size:.85rem; }
+footer a { color:#94a3b8; text-decoration:none; }
+footer a:hover { color:white; }
+@media(max-width:640px) { .grid-4 { grid-template-columns:1fr 1fr; } }
+@media(max-width:400px) { .grid-4 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div style="font-size:3rem;margin-bottom:12px">${t.icon}</div>
+  <h1>${name}</h1>
+  <p class="sub">Professional ${category} Services in ${city}</p>
+  ${rating > 0 ? `<div><div class="rating-badge">⭐ ${rating} Stars &nbsp;·&nbsp; ${reviews} Google Reviews</div></div>` : ""}
+  <div style="margin-top:${rating > 0 ? "14px" : "0"}">
+    <a href="tel:${phone.replace(/\D/g,"")}" class="btn btn-primary">📞 Call: ${phone}</a>
+    <a href="#contact" class="btn btn-secondary">Get Free Quote</a>
+  </div>
+</header>
+
+<section>
+  <h2>Our Services</h2>
+  <p class="lead-text">Reliable, professional ${category.toLowerCase()} services for homeowners and businesses throughout ${city}.</p>
+  <div class="grid-4">
+    ${t.services.map(s => `<div class="service-card"><div class="icon">${t.icon}</div><h3>${s}</h3></div>`).join("\n    ")}
+  </div>
+</section>
+
+<div class="info-bar">
+  <strong>📍 Serving ${city}</strong> &nbsp;·&nbsp; <strong>📞 ${phone}</strong> &nbsp;·&nbsp; 📍 ${address}
+</div>
+
+<section>
+  <h2>Why Choose Us?</h2>
+  <p class="lead-text">We've been serving the ${city} community with honest work and competitive pricing.</p>
+  <div class="grid-4">
+    <div class="why-item"><div class="wi">⚡</div><div><h4>Fast Response</h4><p>Same-day and emergency service available when you need us most.</p></div></div>
+    <div class="why-item"><div class="wi">🛡️</div><div><h4>Licensed & Insured</h4><p>Fully licensed, bonded, and insured for your peace of mind.</p></div></div>
+    <div class="why-item"><div class="wi">💯</div><div><h4>Satisfaction Guaranteed</h4><p>We stand behind every job we do, 100%.</p></div></div>
+    <div class="why-item"><div class="wi">💰</div><div><h4>Transparent Pricing</h4><p>Free estimates with no hidden fees or surprise charges.</p></div></div>
+  </div>
+</section>
+
+<div id="contact" class="contact-section">
+  <h2>Get a Free Quote</h2>
+  <p class="lead-text">Fill out the form below and we'll be in touch within 24 hours.</p>
+  <form id="contact-form">
+    <input type="hidden" name="business_name" value="${name}" />
+    <label>Your Name *</label>
+    <input type="text" name="name" placeholder="Jane Smith" required />
+    <label>Phone Number *</label>
+    <input type="tel" name="phone" placeholder="(555) 000-0000" required />
+    <label>Email (optional)</label>
+    <input type="email" name="email" placeholder="you@email.com" />
+    <label>How can we help?</label>
+    <textarea name="message" placeholder="Describe your project or question..."></textarea>
+    <button type="submit" class="submit-btn">Send Message →</button>
+  </form>
+  <p id="form-status"></p>
+</div>
+
+<footer>
+  <p>© ${new Date().getFullYear()} ${name} &nbsp;·&nbsp; ${city}</p>
+  <p style="margin-top:6px">Website by <a href="https://hashtagwebpage.pages.dev" target="_blank">HashtagWebpage</a></p>
+</footer>
+
+<script>
+document.getElementById("contact-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const btn = this.querySelector(".submit-btn");
+  const status = document.getElementById("form-status");
+  btn.disabled = true; btn.textContent = "Sending...";
+  const data = {};
+  new FormData(this).forEach((v,k) => data[k] = v);
+  fetch("https://formspree.io/f/YOUR_FORM_ID", {
+    method:"POST", headers:{"Content-Type":"application/json","Accept":"application/json"},
+    body: JSON.stringify(data)
+  }).then(r => {
+    if (r.ok) { status.textContent = "✅ Thanks! We'll be in touch within 24 hours."; this.reset(); }
+    else { status.textContent = "❌ Something went wrong. Please call us directly."; }
+  }).catch(() => { status.textContent = "❌ Could not send. Please call us directly."; })
+  .finally(() => { btn.disabled = false; btn.textContent = "Send Message →"; });
+});
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener("click", e => {
+    const el = document.querySelector(a.getAttribute("href"));
+    if (el) { e.preventDefault(); el.scrollIntoView({behavior:"smooth"}); }
+  });
+});
+<\/script>
+</body>
+</html>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// UI HELPERS
+// ─────────────────────────────────────────────────────────────
+function Badge({ stage }) {
+  const s = STAGES[stage] || STAGES.new;
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.bg} ${s.text} border ${s.border}`}>{s.label}</span>;
+}
+
+function StarRating({ rating }) {
+  return <span className="flex items-center gap-1 text-amber-400 text-sm">★ <span className="text-slate-300">{rating.toFixed(1)}</span></span>;
+}
+
+function StatCard({ icon, label, value, sub, color }) {
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 flex items-start gap-4">
+      <div className={`text-2xl w-10 h-10 flex items-center justify-center rounded-lg ${color} flex-shrink-0`}>{icon}</div>
+      <div>
+        <div className="text-2xl font-bold text-white">{value}</div>
+        <div className="text-sm text-slate-400">{label}</div>
+        {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function ToastContainer({ toasts }) {
+  return (
+    <div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast pointer-events-auto px-4 py-3 rounded-xl shadow-2xl text-sm font-medium max-w-xs
+          ${t.type === "error"
+            ? "bg-red-950 border border-red-500/40 text-red-300"
+            : "bg-slate-800 border border-emerald-500/40 text-emerald-300"}`}>
+          {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// LEAD CARD
+// ─────────────────────────────────────────────────────────────
+function LeadCard({ lead, onAction, onSelect, deploying }) {
+  const daysAgo = Math.floor((Date.now() - lead.foundAt) / 86400000);
+  const followUpDue = lead.followUpAt && lead.followUpAt < Date.now();
+  const isDeploying = deploying && deploying.has(lead.id);
+
+  return (
+    <div
+      className={`bg-slate-800/80 border border-slate-700/50 rounded-xl p-4 cursor-pointer hover:border-slate-500/70 transition-all fade-in stage-${lead.stage}`}
+      onClick={() => onSelect(lead)}
+    >
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex-1 min-w-0 pr-2">
+          <div className="font-semibold text-white text-sm leading-tight truncate">{lead.name}</div>
+          <div className="text-xs text-slate-400 mt-0.5">{lead.category} · {lead.city}</div>
+        </div>
+        <Badge stage={lead.stage} />
+      </div>
+
+      {lead.phone && <div className="text-xs text-slate-400 mt-2 flex items-center gap-1.5"><span>📞</span>{lead.phone}</div>}
+      <div className="text-xs text-slate-500 mt-1 flex items-center gap-1.5 truncate">
+        <span>📍</span><span className="truncate">{lead.address}</span>
+      </div>
+
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center gap-3">
+          {lead.rating > 0 && <StarRating rating={lead.rating} />}
+          {lead.reviewCount > 0 && <span className="text-xs text-slate-500">({lead.reviewCount})</span>}
+        </div>
+        <span className="text-xs text-slate-600">{daysAgo === 0 ? "Today" : `${daysAgo}d ago`}</span>
+      </div>
+
+      {followUpDue && (
+        <div className="mt-2 text-xs text-amber-400 flex items-center gap-1">
+          <span className="pulse-dot">⚡</span> Follow-up overdue
+        </div>
+      )}
+
+      <div className="flex gap-2 mt-3" onClick={e => e.stopPropagation()}>
+        {lead.stage === "new" && (
+          <button onClick={() => onAction(lead.id, "generate")} disabled={isDeploying}
+            className="flex-1 text-xs bg-purple-600 hover:bg-purple-500 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg transition-colors">
+            {isDeploying ? <span className="inline-block spin">⏳</span> : "🌐 Generate Site"}
+          </button>
+        )}
+        {lead.stage === "site_generated" && (
+          <button onClick={() => onAction(lead.id, "send_link")}
+            className="flex-1 text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition-colors">
+            📧 Send Preview
+          </button>
+        )}
+        {(lead.stage === "link_sent" || lead.stage === "following_up") && (
+          <button onClick={() => onAction(lead.id, "convert")}
+            className="flex-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg transition-colors">
+            ✅ Convert
+          </button>
+        )}
+        {!["archived","customer"].includes(lead.stage) && (
+          <button onClick={() => onAction(lead.id, "archive")}
+            className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+            Archive
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// LEAD DETAIL MODAL
+// ─────────────────────────────────────────────────────────────
+function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, deploying }) {
+  const [notes, setNotes] = React.useState(lead.notes || "");
+  const [email, setEmail] = React.useState(lead.email || "");
+  const isDeploying = deploying && deploying.has(lead.id);
+  const save = () => onUpdate(lead.id, { notes, email });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl fade-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-5 border-b border-slate-700">
+          <div>
+            <h2 className="text-lg font-bold text-white">{lead.name}</h2>
+            <div className="text-sm text-slate-400">{lead.category} · {lead.city}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge stage={lead.stage} />
+            <button onClick={onClose} className="text-slate-400 hover:text-white text-xl ml-2">×</button>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4 overflow-y-auto max-h-[60vh]">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-800 rounded-lg p-3">
+              <div className="text-xs text-slate-500 mb-1">Phone</div>
+              <div className="text-sm text-white">{lead.phone || "Not available"}</div>
+            </div>
+            <div className="bg-slate-800 rounded-lg p-3">
+              <div className="text-xs text-slate-500 mb-1">Rating</div>
+              <div className="text-sm text-white flex items-center gap-1">
+                {lead.rating > 0 ? <><StarRating rating={lead.rating} /><span className="text-slate-400">({lead.reviewCount})</span></> : "No reviews"}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg p-3">
+            <div className="text-xs text-slate-500 mb-1">Address</div>
+            <div className="text-sm text-white">{lead.address}</div>
+            <a href={lead.mapsUrl} target="_blank" rel="noopener" className="text-xs text-blue-400 hover:underline mt-1 inline-block">View on Google Maps →</a>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Business Email (for sending preview)</label>
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="owner@business.com"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          {lead.previewUrl && (
+            <div className="bg-slate-800 rounded-lg p-3">
+              <div className="text-xs text-slate-500 mb-1">Live URL</div>
+              <a href={lead.previewUrl} target="_blank" rel="noopener" className="text-sm text-blue-400 hover:underline break-all">{lead.previewUrl}</a>
+              <button onClick={() => { save(); onPreview(lead.id); }}
+                className="mt-2 block text-xs text-purple-400 hover:underline">🔍 Preview HTML →</button>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+              placeholder="Add notes about this lead..."
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none" />
+          </div>
+
+          <div className="bg-slate-800 rounded-lg p-3">
+            <div className="text-xs text-slate-500 mb-2">Timeline</div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 text-slate-400"><span className="text-indigo-400">●</span>Found: {new Date(lead.foundAt).toLocaleDateString()}</div>
+              {lead.sentAt && <div className="flex items-center gap-2 text-slate-400"><span className="text-blue-400">●</span>Link sent: {new Date(lead.sentAt).toLocaleDateString()}</div>}
+              {lead.followUpAt && (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span className={lead.followUpAt < Date.now() ? "text-amber-400" : "text-slate-500"}>●</span>
+                  Follow-up: {new Date(lead.followUpAt).toLocaleDateString()}
+                  {lead.followUpAt < Date.now() && <span className="text-amber-400">(overdue)</span>}
+                </div>
+              )}
+              {lead.convertedAt && <div className="flex items-center gap-2 text-slate-400"><span className="text-emerald-400">●</span>Converted: {new Date(lead.convertedAt).toLocaleDateString()}</div>}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-slate-700 flex gap-2 flex-wrap">
+          <button onClick={save} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors">Save</button>
+          {lead.stage === "new" && (
+            <button disabled={isDeploying} onClick={() => { save(); onAction(lead.id, "generate"); onClose(); }}
+              className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-60 text-white text-sm rounded-lg transition-colors">
+              {isDeploying ? "⏳ Deploying..." : "🌐 Generate & Deploy"}
+            </button>
+          )}
+          {lead.stage === "site_generated" && (
+            <>
+              <button onClick={() => { save(); onPreview(lead.id); }}
+                className="py-2 px-3 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors">🔍 Preview</button>
+              <button onClick={() => { save(); onAction(lead.id, "send_link"); onClose(); }}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors">📧 Send Link</button>
+            </>
+          )}
+          {(lead.stage === "link_sent" || lead.stage === "following_up") && (
+            <button onClick={() => { save(); onAction(lead.id, "convert"); onClose(); }}
+              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg transition-colors">✅ Mark as Customer</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// WEBSITE PREVIEW MODAL
+// ─────────────────────────────────────────────────────────────
+function WebsitePreviewModal({ lead, settings, onClose }) {
+  const slug = slugify(lead.name, lead.city);
+  const proj = settings?.cfProjectName || CF_DEFAULT_PROJECT;
+  const deployUrl = `https://${proj}.pages.dev/${slug}`;
+  const html = generateSiteHTML(lead);
+  const [copied, setCopied] = React.useState(false);
+
+  const download = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    a.download = `${slug}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(html).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl fade-in flex flex-col"
+        style={{maxHeight:"92vh"}} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-slate-700 flex-shrink-0">
+          <div className="min-w-0">
+            <h3 className="text-white font-semibold truncate">{lead.name}</h3>
+            <div className="text-xs text-slate-400 mt-0.5 truncate">
+              Deploy URL: <a href={deployUrl} target="_blank" rel="noopener" className="text-blue-400 hover:underline">{deployUrl}</a>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+            <button onClick={copy} className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+              {copied ? "✓ Copied!" : "📋 Copy HTML"}
+            </button>
+            <button onClick={download} className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+              ⬇ Download
+            </button>
+            <button onClick={onClose} className="text-slate-400 hover:text-white text-xl ml-1">×</button>
+          </div>
+        </div>
+        <div className="flex-1 bg-slate-950 rounded-b-2xl overflow-hidden" style={{minHeight:0}}>
+          <iframe srcDoc={html} className="w-full border-0" style={{height:"560px"}} title="Site Preview" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CEO COMMAND CENTER — DASHBOARD VIEW
+// ─────────────────────────────────────────────────────────────
+function DashboardView({ leads, settings, addToast, onSync, syncStatus }) {
+  const [triggeringN8n, setTriggeringN8n] = React.useState(false);
+
+  const now = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayTs = todayStart.getTime();
+
+  const counts = {
+    total:     leads.filter(l => l.stage !== "archived").length,
+    customers: leads.filter(l => l.stage === "customer").length,
+    active:    leads.filter(l => ["link_sent","following_up","site_generated"].includes(l.stage)).length,
+    overdue:   leads.filter(l => l.followUpAt && l.followUpAt < now && !["customer","archived"].includes(l.stage)).length,
+    mrr:       leads.filter(l => l.stage === "customer").length * 5,
+    new:       leads.filter(l => l.stage === "new").length,
+    todayNew:  leads.filter(l => l.foundAt >= todayTs).length,
+    todaySent: leads.filter(l => l.sentAt && l.sentAt >= todayTs).length,
+    todayConv: leads.filter(l => l.convertedAt && l.convertedAt >= todayTs).length,
+  };
+
+  const pipeline = ["new","site_generated","link_sent","following_up","customer"].map(s => ({
+    stage: s, label: STAGES[s].label,
+    count: leads.filter(l => l.stage === s).length,
+    color: s==="new"?"bg-indigo-500":s==="site_generated"?"bg-purple-500":
+           s==="link_sent"?"bg-blue-500":s==="following_up"?"bg-amber-500":"bg-emerald-500"
+  }));
+
+  const overdueleads = leads.filter(l => l.followUpAt && l.followUpAt < now && !["customer","archived"].includes(l.stage));
+  const readyToSend  = leads.filter(l => l.stage === "site_generated");
+  const recent       = [...leads].filter(l => l.stage !== "archived").sort((a,b) => b.foundAt - a.foundAt).slice(0,6);
+
+  const convRate = counts.total > 0 ? ((counts.customers / (counts.total + leads.filter(l=>l.stage==="archived").length)) * 100).toFixed(1) : 0;
+
+  const triggerN8n = async (event) => {
+    if (!settings.n8nWebhookUrl) { addToast("⚠️ Set n8n Webhook URL in Settings first", "error"); return; }
+    setTriggeringN8n(true);
+    try {
+      const res = await fetch("/api/n8n-trigger", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl: settings.n8nWebhookUrl, payload: { event, triggeredAt: new Date().toISOString() } })
+      });
+      const data = await res.json();
+      if (data.ok) addToast(`✅ n8n triggered: ${event}`);
+      else addToast(`n8n response: ${data.n8nResponse || "sent"}`, "success");
+    } catch(e) { addToast(`n8n trigger failed: ${e.message}`, "error"); }
+    finally { setTriggeringN8n(false); }
+  };
+
+  const sbConnected = !!(settings.supabaseUrl);
+  const cfConnected = !!(settings.cfAccountId && settings.cfApiToken);
+  const n8nConnected = !!(settings.n8nWebhookUrl);
+  const emailConnected = !!(settings.resendApiKey);
+
+  return (
+    <div className="space-y-6 fade-in">
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Command Center</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            {new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" })}
+          </p>
+        </div>
+        <button onClick={onSync}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors">
+          🔄 {syncStatus === "syncing" ? "Syncing..." : syncStatus === "ok" ? "Synced ✓" : "Sync Supabase"}
+        </button>
+      </div>
+
+      {/* System Status Bar */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4">
+        <div className="text-xs text-slate-500 font-medium mb-3 uppercase tracking-wider">System Status</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Supabase DB",    ok: sbConnected,    detail: sbConnected ? "Connected" : "Not configured" },
+            { label: "Cloudflare",     ok: cfConnected,    detail: cfConnected ? "Ready to deploy" : "No credentials" },
+            { label: "n8n Automation", ok: n8nConnected,   detail: n8nConnected ? "Webhook set" : "Not connected" },
+            { label: "Email (Resend)", ok: emailConnected, detail: emailConnected ? "API key set" : "No key" },
+          ].map(s => (
+            <div key={s.label} className={`rounded-lg p-3 border ${s.ok ? "bg-emerald-500/5 border-emerald-500/20" : "bg-slate-900/60 border-slate-700/30"}`}>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.ok ? "bg-emerald-400 pulse-dot" : "bg-slate-600"}`} />
+                <span className={`text-xs font-medium ${s.ok ? "text-emerald-300" : "text-slate-500"}`}>{s.label}</span>
+              </div>
+              <div className="text-xs text-slate-500 pl-4">{s.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Today's Activity */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-indigo-300">{counts.todayNew}</div>
+          <div className="text-xs text-slate-400 mt-1">New Leads Today</div>
+        </div>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-blue-300">{counts.todaySent}</div>
+          <div className="text-xs text-slate-400 mt-1">Emails Sent Today</div>
+        </div>
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-emerald-300">{counts.todayConv}</div>
+          <div className="text-xs text-slate-400 mt-1">Converted Today</div>
+        </div>
+      </div>
+
+      {/* KPI Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon="💰" label="MRR"           value={`$${counts.mrr}`}     sub={`${counts.customers} paying customers`} color="bg-emerald-500/20" />
+        <StatCard icon="📈" label="Conversion"    value={`${convRate}%`}        sub="Leads → Customers" color="bg-purple-500/20" />
+        <StatCard icon="🎯" label="In Pipeline"   value={counts.active}         sub="Site sent or generated" color="bg-blue-500/20" />
+        <StatCard icon="⚡" label="Action Needed" value={counts.overdue + readyToSend.length} sub="Overdue + ready to send" color={counts.overdue > 0 ? "bg-amber-500/20" : "bg-slate-700"} />
+      </div>
+
+      {/* Revenue + Funnel */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* Revenue */}
+        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-white mb-4">💵 Revenue</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+              <span className="text-sm text-slate-400">Setup Fees Earned</span>
+              <span className="font-bold text-emerald-400">${counts.customers * 100}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+              <span className="text-sm text-slate-400">Monthly Recurring</span>
+              <span className="font-bold text-blue-400">${counts.mrr}/mo</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+              <span className="text-sm text-slate-400">Annual Run Rate</span>
+              <span className="font-bold text-purple-400">${counts.customers * 100 + counts.mrr * 12}/yr</span>
+            </div>
+            <div className="mt-2 pt-1">
+              <div className="text-xs text-slate-500 mb-1">Next milestone: {Math.max(0, 20 - counts.customers)} more customers → $100/mo MRR</div>
+              <div className="bg-slate-700 rounded-full h-2">
+                <div className="bg-emerald-500 h-full rounded-full transition-all" style={{width: `${Math.min(100, (counts.customers/20)*100)}%`}} />
+              </div>
+              <div className="flex justify-between text-xs text-slate-500 mt-1">
+                <span>{counts.customers} customers</span><span>20 customers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Funnel */}
+        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-white mb-4">🎯 Pipeline Funnel</h3>
+          <div className="space-y-2">
+            {pipeline.map(p => (
+              <div key={p.stage} className="flex items-center gap-3">
+                <div className="text-xs text-slate-400 w-24 flex-shrink-0">{p.label}</div>
+                <div className="flex-1 bg-slate-700 rounded-full h-5 overflow-hidden relative">
+                  <div className={`h-full rounded-full transition-all ${p.color}`}
+                    style={{width: counts.total ? `${Math.max(4,Math.min(100,(p.count/(counts.total+leads.filter(l=>l.stage==="archived").length))*100))}%` : "0%"}} />
+                </div>
+                <div className="text-sm font-bold text-white w-6 text-right">{p.count}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-xs text-slate-500">{leads.filter(l=>l.stage==="archived").length} archived · {leads.length} total scraped</div>
+        </div>
+      </div>
+
+      {/* Action Items */}
+      {(overdueleads.length > 0 || readyToSend.length > 0) && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
+          <h3 className="text-sm font-semibold text-amber-300 mb-3">⚡ Needs Your Attention</h3>
+          <div className="space-y-2">
+            {overdueleads.slice(0,3).map(l => (
+              <div key={l.id} className="flex items-center justify-between bg-slate-800/60 rounded-lg px-3 py-2.5">
+                <div>
+                  <span className="text-sm text-white">{l.name}</span>
+                  <span className="text-xs text-slate-400 ml-2">{l.city}</span>
+                </div>
+                <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">Follow-up overdue</span>
+              </div>
+            ))}
+            {readyToSend.slice(0,3).map(l => (
+              <div key={l.id} className="flex items-center justify-between bg-slate-800/60 rounded-lg px-3 py-2.5">
+                <div>
+                  <span className="text-sm text-white">{l.name}</span>
+                  <span className="text-xs text-slate-400 ml-2">{l.city}</span>
+                </div>
+                <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">Site ready — send preview</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-4">🚀 Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <button onClick={() => triggerN8n("daily_search")} disabled={triggeringN8n || !n8nConnected}
+            className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 disabled:opacity-50 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all text-left">
+            <span className="text-lg">🔍</span>
+            <span className="text-sm font-medium text-white">Run Lead Search</span>
+            <span className="text-xs text-slate-500">Trigger n8n daily search</span>
+          </button>
+          <button onClick={() => triggerN8n("send_followups")} disabled={triggeringN8n || !n8nConnected}
+            className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 disabled:opacity-50 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all text-left">
+            <span className="text-lg">📧</span>
+            <span className="text-sm font-medium text-white">Send Follow-ups</span>
+            <span className="text-xs text-slate-500">Email overdue leads now</span>
+          </button>
+          <button onClick={() => triggerN8n("archive_cold")} disabled={triggeringN8n || !n8nConnected}
+            className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 disabled:opacity-50 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all text-left">
+            <span className="text-lg">📁</span>
+            <span className="text-sm font-medium text-white">Archive Cold Leads</span>
+            <span className="text-xs text-slate-500">Clean up 14+ day no-response</span>
+          </button>
+          <a href={`https://${settings.cfProjectName || "hashtagwebpage"}.pages.dev`} target="_blank" rel="noopener"
+            className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all">
+            <span className="text-lg">🌐</span>
+            <span className="text-sm font-medium text-white">View Marketing Site</span>
+            <span className="text-xs text-slate-500">hashtagwebpage.pages.dev</span>
+          </a>
+          <a href="http://localhost:5678" target="_blank" rel="noopener"
+            className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all">
+            <span className="text-lg">⚙️</span>
+            <span className="text-sm font-medium text-white">Open n8n</span>
+            <span className="text-xs text-slate-500">Manage automations</span>
+          </a>
+          <a href="http://localhost:54323" target="_blank" rel="noopener"
+            className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all">
+            <span className="text-lg">🗄️</span>
+            <span className="text-sm font-medium text-white">Open pgAdmin</span>
+            <span className="text-xs text-slate-500">Browse database</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Recent Leads */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-white mb-3">🕐 Recent Leads</h3>
+        <div className="space-y-2">
+          {recent.map(l => {
+            const daysAgo = Math.floor((now - l.foundAt) / 86400000);
+            return (
+              <div key={l.id} className="flex items-center justify-between py-2 border-b border-slate-700/50 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{l.name}</div>
+                  <div className="text-xs text-slate-500">{l.category} · {l.city}</div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <span className="text-xs text-slate-600">{daysAgo === 0 ? "Today" : `${daysAgo}d ago`}</span>
+                  <Badge stage={l.stage} />
+                </div>
+              </div>
+            );
+          })}
+          {leads.length === 0 && (
+            <p className="text-slate-500 text-sm py-2">No leads yet. Use Find Leads to start your pipeline.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FIND LEADS VIEW
+// ─────────────────────────────────────────────────────────────
+function FindLeadsView({ leads, onAddLeads }) {
+  const [city, setCity] = React.useState("");
+  const [category, setCategory] = React.useState("Plumber");
+  const [loading, setLoading] = React.useState(false);
+  const [results, setResults] = React.useState([]);
+  const [error, setError] = React.useState(null);
+  const [added, setAdded] = React.useState(new Set());
+
+  const search = async () => {
+    if (!city.trim()) { setError("Please enter a city"); return; }
+    setLoading(true); setError(null); setResults([]);
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: city.trim(), category })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (!data.results?.length) setError("No businesses without websites found here. Try a different city or category.");
+      else setResults(data.results);
+    } catch (e) {
+      setError(`Search failed: ${e.message}`);
+    } finally { setLoading(false); }
+  };
+
+  const loadDemo = () => {
+    const c = city.trim() || "Atlanta, GA";
+    setResults([
+      { id:"demo_"+Date.now(), name:"Tom's "+category+" Co", category, city:c,
+        phone:"(555) 123-4567", address:"123 Main St, "+c, rating:4.6, reviewCount:22,
+        hasWebsite:false, stage:"new", mapsUrl:"#", foundAt:Date.now(),
+        sentAt:null, followUpAt:null, convertedAt:null, previewUrl:null, email:null, notes:"" },
+      { id:"demo2_"+Date.now(), name:c.split(",")[0]+" "+category+" Services", category, city:c,
+        phone:"(555) 987-6543", address:"456 Oak Ave, "+c, rating:4.8, reviewCount:67,
+        hasWebsite:false, stage:"new", mapsUrl:"#", foundAt:Date.now(),
+        sentAt:null, followUpAt:null, convertedAt:null, previewUrl:null, email:null, notes:"" }
+    ]);
+    setError(null);
+  };
+
+  const addToLeads = r => {
+    if (!leads.find(l => l.id === r.id)) onAddLeads([r]);
+    setAdded(prev => new Set([...prev, r.id]));
+  };
+  const addAll = () => {
+    const newOnes = results.filter(r => !leads.find(l => l.id === r.id));
+    if (newOnes.length) onAddLeads(newOnes);
+    setAdded(new Set(results.map(r => r.id)));
+  };
+
+  return (
+    <div className="space-y-6 fade-in">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Find Leads</h1>
+        <p className="text-slate-400 text-sm mt-1">Search Google Maps for businesses without websites</p>
+      </div>
+
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-300">
+        💡 <strong>Cost-optimized:</strong> Each search costs ~$0.01 via Google Places API and is cached for 7 days.
+      </div>
+
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block">City</label>
+            <input value={city} onChange={e => setCity(e.target.value)} onKeyDown={e => e.key==="Enter"&&search()}
+              placeholder="e.g. Atlanta, GA"
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1.5 block">Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="flex items-end gap-2">
+            <button onClick={search} disabled={loading}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors">
+              {loading ? <span className="inline-block spin">⏳</span> : "🔍 Search"}
+            </button>
+            <button onClick={loadDemo} className="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 px-3 rounded-lg text-sm transition-colors">Demo</button>
+          </div>
+        </div>
+        {error && <div className="mt-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">{error}</div>}
+      </div>
+
+      {results.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm text-slate-400">{results.length} businesses found without websites</div>
+            <button onClick={addAll} className="text-sm bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg transition-colors">Add All</button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {results.map(r => (
+              <div key={r.id} className={`bg-slate-800/80 border rounded-xl p-4 fade-in ${added.has(r.id)?"border-emerald-500/40":"border-slate-700/50"}`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium text-white text-sm">{r.name}</div>
+                    <div className="text-xs text-slate-400">{r.category} · {r.city}</div>
+                  </div>
+                  {r.rating > 0 && <StarRating rating={r.rating} />}
+                </div>
+                {r.phone && <div className="text-xs text-slate-400 mt-2">📞 {r.phone}</div>}
+                <div className="text-xs text-slate-500 mt-1 truncate">📍 {r.address}</div>
+                <div className="mt-3">
+                  {added.has(r.id)
+                    ? <span className="text-xs text-emerald-400">✓ Added to pipeline</span>
+                    : <button onClick={() => addToLeads(r)} className="w-full text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg transition-colors">+ Add to Pipeline</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// PIPELINE VIEW
+// ─────────────────────────────────────────────────────────────
+function PipelineView({ leads, onAction, onSelect, deploying }) {
+  const stageOrder = ["new","site_generated","link_sent","following_up","customer","archived"];
+  return (
+    <div className="fade-in">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">Pipeline</h1>
+        <p className="text-slate-400 text-sm mt-1">Manage leads through your workflow</p>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide" style={{minHeight:"70vh"}}>
+        {stageOrder.map(stage => {
+          const stageLeads = leads.filter(l => l.stage === stage);
+          const s = STAGES[stage];
+          return (
+            <div key={stage} className="flex-shrink-0 w-72">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <span className={`text-sm font-semibold ${s.text}`}>{s.label}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${s.bg} ${s.text}`}>{stageLeads.length}</span>
+              </div>
+              <div className="space-y-3 min-h-[200px]">
+                {stageLeads.map(lead => (
+                  <LeadCard key={lead.id} lead={lead} onAction={onAction} onSelect={onSelect} deploying={deploying} />
+                ))}
+                {stageLeads.length === 0 && (
+                  <div className={`border-2 border-dashed ${s.border} rounded-xl h-24 flex items-center justify-center`}>
+                    <span className="text-xs text-slate-600">No leads here</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SETTINGS VIEW
+// ─────────────────────────────────────────────────────────────
+function SettingsView({ settings, onSave, addToast }) {
+  const [form, setForm] = React.useState({
+    cfAccountId:   settings.cfAccountId   || "",
+    cfApiToken:    settings.cfApiToken    || "",
+    cfProjectName: settings.cfProjectName || CF_DEFAULT_PROJECT,
+    resendApiKey:  settings.resendApiKey  || "",
+    fromEmail:     settings.fromEmail     || "hello@hashtagwebpage.co",
+    n8nWebhookUrl: settings.n8nWebhookUrl || "",
+    supabaseUrl:   settings.supabaseUrl   || "http://localhost:54321",
+    supabaseKey:   settings.supabaseKey   || "",
+  });
+  const [saved, setSaved] = React.useState(false);
+  const [testingDb, setTestingDb] = React.useState(false);
+  const [deployingHome, setDeployingHome] = React.useState(false);
+  const manifest = settings.cfManifest || {};
+  const manifestKeys = Object.keys(manifest);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const save = () => {
+    onSave({ ...settings, ...form });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const testDb = async () => {
+    if (!form.supabaseUrl) { addToast("Enter a Supabase URL first", "error"); return; }
+    setTestingDb(true);
+    try {
+      const headers = {};
+      if (form.supabaseKey) headers["apikey"] = form.supabaseKey;
+      const res = await fetch(form.supabaseUrl.replace(/\/$/, "") + "/rest/v1/leads?limit=1", { headers });
+      if (res.ok || res.status === 406) addToast("✅ Supabase connection OK!");
+      else addToast(`Connection failed (${res.status})`, "error");
+    } catch (e) {
+      addToast(`Connection failed: ${e.message}`, "error");
+    } finally { setTestingDb(false); }
+  };
+
+  const deployHomepage = async () => {
+    if (!form.cfAccountId || !form.cfApiToken) { addToast("Enter Cloudflare credentials first", "error"); return; }
+    setDeployingHome(true);
+    try {
+      const res = await fetch("/api/deploy-home", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cfAccountId: form.cfAccountId,
+          cfApiToken: form.cfApiToken,
+          cfProjectName: form.cfProjectName || CF_DEFAULT_PROJECT,
+          currentManifest: manifest
+        })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Deploy failed");
+      onSave({ ...settings, ...form, cfManifest: data.updatedManifest || manifest });
+      addToast(`✅ Homepage deployed → ${data.productionUrl}`);
+    } catch (e) {
+      addToast(`Homepage deploy failed: ${e.message}`, "error");
+    } finally { setDeployingHome(false); }
+  };
+
+  const F = ({ k, label, placeholder, type="text", help=null }) => (
+    <div>
+      <label className="text-sm text-slate-300 mb-1.5 block font-medium">{label}</label>
+      <input type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder}
+        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      {help && <p className="text-xs text-slate-500 mt-1">{help}</p>}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 fade-in max-w-2xl">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <p className="text-slate-400 text-sm mt-1">Configure API keys and integrations</p>
+      </div>
+
+      {/* Cloudflare */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">☁️ Cloudflare Pages</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          All client sites deploy as sub-paths under one project:
+          <code className="text-indigo-400 ml-1">hashtagwebpage.pages.dev/business-slug</code>
+        </p>
+        <div className="space-y-3">
+          <F k="cfAccountId"   label="Account ID"         placeholder="abc123def..."     type="password" help="Cloudflare Dashboard → right sidebar" />
+          <F k="cfApiToken"    label="API Token"          placeholder="your-api-token"   type="password" help="cloudflare.com → Profile → API Tokens → Pages:Edit" />
+          <F k="cfProjectName" label="Project Name"       placeholder="hashtagwebpage"               help="The single CF Pages project that hosts all client sites" />
+        </div>
+
+        {/* Manifest */}
+        <div className="mt-4 bg-slate-900 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-slate-400 font-medium">Deployed Manifest</span>
+            <span className="text-xs text-slate-500">{manifestKeys.length} path{manifestKeys.length !== 1 ? "s" : ""} cached</span>
+          </div>
+          {manifestKeys.length > 0 ? (
+            <div className="max-h-28 overflow-y-auto scrollbar-hide space-y-0.5">
+              {manifestKeys.map(p => (
+                <div key={p} className="text-xs font-mono text-slate-400 truncate">
+                  <span className="text-emerald-400">✓</span> {p}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-600">No sites deployed yet.</p>
+          )}
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <button onClick={deployHomepage} disabled={deployingHome}
+            className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors">
+            {deployingHome ? <span className="inline-block spin mr-1">⏳</span> : "🏠 "}Deploy Homepage
+          </button>
+          <a href={`https://${form.cfProjectName || CF_DEFAULT_PROJECT}.pages.dev`} target="_blank" rel="noopener"
+            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors flex items-center gap-1">
+            ↗ View
+          </a>
+        </div>
+        <p className="text-xs text-slate-500 mt-1.5">Deploys <code>hashtagwebpage-home.html</code> as the public homepage</p>
+      </div>
+
+      {/* Supabase */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">🗄️ Supabase (Optional)</h2>
+        <p className="text-xs text-slate-500 mb-4">Sync leads across devices. Works with local or cloud Supabase.</p>
+        <div className="space-y-3">
+          <F k="supabaseUrl" label="Supabase URL"      placeholder="http://localhost:54321" help="Local: http://localhost:54321 · Cloud: https://xyz.supabase.co" />
+          <F k="supabaseKey" label="Anon Key (optional)" placeholder="eyJ..."  type="password" help="Leave blank for local PostgREST with no JWT secret" />
+        </div>
+        <div className="mt-3 bg-slate-900 rounded-lg p-3 text-xs text-slate-500">
+          <span className="text-slate-400 font-medium">After changing JWT settings, run: </span>
+          <code className="text-emerald-400">docker compose up -d --force-recreate rest</code>
+        </div>
+        <button onClick={testDb} disabled={testingDb}
+          className="mt-3 px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-60 text-slate-300 text-sm rounded-lg transition-colors">
+          {testingDb ? <span className="inline-block spin mr-1">⏳</span> : "🔌 "}Test Connection
+        </button>
+      </div>
+
+      {/* Email */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-4">📧 Email — Resend.com</h2>
+        <p className="text-sm text-slate-400 mb-3">
+          <a href="https://resend.com" target="_blank" rel="noopener" className="text-blue-400 hover:underline">resend.com</a> — 100 free emails/day
+        </p>
+        <div className="space-y-3">
+          <F k="resendApiKey" label="Resend API Key" placeholder="re_..." type="password" />
+          <F k="fromEmail"    label="From Email"     placeholder="hello@hashtagwebpage.co" />
+        </div>
+      </div>
+
+      {/* n8n */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-4">🔄 n8n Automation</h2>
+        <F k="n8nWebhookUrl" label="n8n Webhook URL" placeholder="http://localhost:5678/webhook/hashtagwebpage" />
+      </div>
+
+      {/* Pricing */}
+      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-emerald-400 mb-2">💰 Pricing Model</h3>
+        <div className="text-sm text-slate-300 space-y-1">
+          <p>• <strong>Free preview</strong> — business sees their site with no obligation</p>
+          <p>• <strong>$100 setup fee</strong> — domain setup + 2 months hosting included</p>
+          <p>• <strong>$5/month</strong> hosting on <code>hashtagwebpage.pages.dev/slug</code></p>
+          <p>• <strong>$200 buyout</strong> — custom domain, transferred to them</p>
+        </div>
+      </div>
+
+      <button onClick={save}
+        className={`px-6 py-3 rounded-xl font-medium text-sm transition-all ${saved ? "bg-emerald-600 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}>
+        {saved ? "✓ Saved!" : "Save Settings"}
+      </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────
+function App() {
+  const [view, setView]               = React.useState("dashboard");
+  const [leads, setLeads]             = React.useState(() => store.getLeads());
+  const [settings, setSettings]       = React.useState(() => store.getSettings());
+  const [selectedLead, setSelectedLead] = React.useState(null);
+  const [previewLead, setPreviewLead] = React.useState(null);
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [deploying, setDeploying]     = React.useState(new Set());
+  const [toasts, setToasts]           = React.useState([]);
+  const [syncStatus, setSyncStatus]   = React.useState("idle"); // idle | syncing | ok | error
+
+  const addToast = (msg, type = "success") => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4500);
+  };
+
+  const saveLeads    = nl => { setLeads(nl); store.saveLeads(nl); };
+  const saveSettings = s  => { setSettings(s); store.saveSettings(s); };
+
+  // ── Sync from Supabase (manual or on settings change) ─────────────────────
+  const syncFromSupabase = React.useCallback(async (currentSettings) => {
+    const s = currentSettings || settings;
+    if (!s.supabaseUrl) { addToast("⚠️ Configure Supabase URL in Settings first", "error"); return; }
+    setSyncStatus("syncing");
+    try {
+      const sbLeads = await loadAllFromSupabase(s);
+      if (sbLeads && sbLeads.length > 0) {
+        // Merge: Supabase is source of truth, keep local-only leads
+        const sbIds = new Set(sbLeads.map(l => l.id));
+        const localOnly = store.getLeads().filter(l => !sbIds.has(l.id) && l.id.startsWith("demo_"));
+        const merged = [...sbLeads, ...localOnly];
+        saveLeads(merged);
+        addToast(`✅ Synced ${sbLeads.length} leads from Supabase`);
+      } else if (sbLeads && sbLeads.length === 0) {
+        addToast("Supabase connected — no leads yet (table empty)");
+      }
+      setSyncStatus("ok");
+      setTimeout(() => setSyncStatus("idle"), 5000);
+    } catch(e) {
+      setSyncStatus("error");
+      addToast(`Sync failed: ${e.message}`, "error");
+    }
+  }, [settings]);
+
+  // Auto-sync from Supabase on startup if configured
+  React.useEffect(() => {
+    if (settings.supabaseUrl) {
+      syncFromSupabase(settings);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll for n8n-added leads every 30s
+  React.useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/leads");
+        const data = await res.json();
+        if (data.leads?.length) {
+          setLeads(prev => {
+            const merged = [...prev];
+            let changed = false;
+            data.leads.forEach(nl => { if (!merged.find(l => l.id === nl.id)) { merged.push(nl); changed = true; } });
+            if (changed) { store.saveLeads(merged); return merged; }
+            return prev;
+          });
+        }
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // ── Main action handler ──────────────────────────────────────
+  const handleAction = async (id, action) => {
+    // ASYNC: Generate & deploy site
+    if (action === "generate") {
+      const lead = leads.find(l => l.id === id);
+      if (!lead) return;
+      if (!settings.cfAccountId || !settings.cfApiToken) {
+        addToast("⚠️ Add Cloudflare Account ID + API Token in Settings first", "error");
+        return;
+      }
+      const slug           = slugify(lead.name, lead.city);
+      const html           = generateSiteHTML(lead);
+      const cfProjectName  = settings.cfProjectName || CF_DEFAULT_PROJECT;
+      const currentManifest = settings.cfManifest || {};
+
+      setDeploying(prev => new Set([...prev, id]));
+      try {
+        const res = await fetch("/api/deploy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, html, cfAccountId: settings.cfAccountId, cfApiToken: settings.cfApiToken, cfProjectName, currentManifest })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Deploy failed");
+
+        const newSettings = { ...settings, cfManifest: data.updatedManifest || currentManifest };
+        saveSettings(newSettings);
+
+        const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: data.productionUrl } : l);
+        saveLeads(newLeads);
+
+        const updated = newLeads.find(l => l.id === id);
+        if (settings.supabaseUrl && updated) dbSaveLead(updated, newSettings).catch(() => {});
+
+        addToast(`✅ Site live → ${data.productionUrl}`);
+      } catch (e) {
+        addToast(`Deploy failed: ${e.message}`, "error");
+      } finally {
+        setDeploying(prev => { const s = new Set(prev); s.delete(id); return s; });
+      }
+      return;
+    }
+
+    // SYNC: All other actions
+    const now = Date.now();
+    const newLeads = leads.map(l => {
+      if (l.id !== id) return l;
+      if (action === "send_link") {
+        const updated = { ...l, stage: "link_sent", sentAt: now, followUpAt: now + 7 * 86400000 };
+        // Send email if configured
+        if (settings.resendApiKey && updated.email) {
+          fetch("/api/send-email", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to: updated.email, businessName: updated.name, previewUrl: updated.previewUrl, fromEmail: settings.fromEmail, resendKey: settings.resendApiKey })
+          }).then(() => addToast(`📧 Email sent to ${updated.email}`)).catch(() => {});
+        }
+        // Trigger n8n
+        if (settings.n8nWebhookUrl) {
+          fetch("/api/n8n-trigger", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ webhookUrl: settings.n8nWebhookUrl, payload: { event: "link_sent", lead: updated } })
+          }).catch(() => {});
+        }
+        return updated;
+      }
+      if (action === "convert") return { ...l, stage: "customer", convertedAt: now, followUpAt: null };
+      if (action === "archive") return { ...l, stage: "archived" };
+      return l;
+    });
+    saveLeads(newLeads);
+    const updated = newLeads.find(l => l.id === id);
+    if (settings.supabaseUrl && updated) dbSaveLead(updated, settings).catch(() => {});
+  };
+
+  const handleUpdate = (id, updates) => {
+    const newLeads = leads.map(l => l.id === id ? { ...l, ...updates } : l);
+    saveLeads(newLeads);
+    setSelectedLead(prev => prev?.id === id ? { ...prev, ...updates } : prev);
+    const updated = newLeads.find(l => l.id === id);
+    if (settings.supabaseUrl && updated) dbSaveLead(updated, settings).catch(() => {});
+  };
+
+  const handleAddLeads = newLeads => {
+    const merged = [...leads];
+    const truly_new = [];
+    newLeads.forEach(nl => {
+      if (!merged.find(l => l.id === nl.id)) { merged.push(nl); truly_new.push(nl); }
+    });
+    saveLeads(merged);
+    // Bulk-upsert to Supabase
+    if (settings.supabaseUrl && truly_new.length > 0) {
+      dbSaveLeads(truly_new, settings).catch(() => {});
+    }
+  };
+
+  const handlePreview = id => {
+    const lead = leads.find(l => l.id === id);
+    if (lead) setPreviewLead(lead);
+  };
+
+  const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: "📊" },
+    { id: "find",      label: "Find Leads", icon: "🔍" },
+    { id: "pipeline",  label: "Pipeline",   icon: "🎯" },
+    { id: "settings",  label: "Settings",   icon: "⚙️" }
+  ];
+
+  const customerCount = leads.filter(l => l.stage === "customer").length;
+  const overdueCount  = leads.filter(l => l.followUpAt && l.followUpAt < Date.now() && !["customer","archived"].includes(l.stage)).length;
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex">
+      {/* Sidebar */}
+      <aside className={`${sidebarOpen ? "w-56" : "w-16"} bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-200 flex-shrink-0`}>
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          {sidebarOpen && (
+            <div>
+              <div className="text-white font-bold text-sm">{APP_NAME}</div>
+              <div className="text-slate-500 text-xs">Lead CRM</div>
+            </div>
+          )}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white text-lg ml-auto">
+            {sidebarOpen ? "◀" : "▶"}
+          </button>
+        </div>
+
+        <nav className="flex-1 p-3 space-y-1">
+          {navItems.map(item => (
+            <button key={item.id} onClick={() => setView(item.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors
+                ${view === item.id ? "bg-indigo-600 text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
+              <span className="text-base flex-shrink-0">{item.icon}</span>
+              {sidebarOpen && <span>{item.label}</span>}
+              {sidebarOpen && item.id === "pipeline" && overdueCount > 0 && (
+                <span className="ml-auto bg-amber-500 text-black text-xs font-bold px-1.5 py-0.5 rounded-full">{overdueCount}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {sidebarOpen && customerCount > 0 && (
+          <div className="p-3 border-t border-slate-800">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+              <div className="text-xs text-emerald-400 font-medium">{customerCount} customer{customerCount !== 1 ? "s" : ""}</div>
+              <div className="text-sm font-bold text-emerald-300">${customerCount * 5}/mo MRR</div>
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* Main */}
+      <main className="flex-1 overflow-auto p-6 min-w-0">
+        {view === "dashboard" && <DashboardView leads={leads} settings={settings} addToast={addToast} onSync={() => syncFromSupabase(settings)} syncStatus={syncStatus} />}
+        {view === "find"      && <FindLeadsView leads={leads} onAddLeads={handleAddLeads} />}
+        {view === "pipeline"  && <PipelineView  leads={leads} onAction={handleAction} onSelect={setSelectedLead} deploying={deploying} />}
+        {view === "settings"  && <SettingsView  settings={settings} onSave={saveSettings} addToast={addToast} />}
+      </main>
+
+      {/* Lead Detail Modal */}
+      {selectedLead && (
+        <LeadModal
+          lead={leads.find(l => l.id === selectedLead.id) || selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onAction={handleAction}
+          onUpdate={handleUpdate}
+          onPreview={handlePreview}
+          deploying={deploying}
+        />
+      )}
+
+      {/* Website Preview Modal */}
+      {previewLead && (
+        <WebsitePreviewModal lead={previewLead} settings={settings} onClose={() => setPreviewLead(null)} />
+      )}
+
+      {/* Toasts */}
+      <ToastContainer toasts={toasts} />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>

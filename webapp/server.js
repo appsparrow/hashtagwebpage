@@ -1,0 +1,549 @@
+/**
+ * HashtagWebpage — Local Development Server
+ * No npm install needed — uses only Node.js built-in modules.
+ *
+ * Run: node server.js
+ * Then open: http://localhost:3000
+ *
+ * What this does:
+ *   GET  /           → serves index.html
+ *   POST /api/search → proxies Google Places API (keeps your key off the browser)
+ *   POST /api/contact → receives contact form, prints to console (no email locally)
+ */
+
+const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+const url = require("url");
+
+// Flexible HTTP/HTTPS request helper — supports string and Buffer bodies
+function httpRequest(targetUrl, method, headers, body) {
+  return new Promise((resolve, reject) => {
+    const parsed = new url.URL(targetUrl);
+    const isHttps = parsed.protocol === "https:";
+    const lib = isHttps ? https : http;
+    const bodyBuf = body instanceof Buffer ? body
+      : typeof body === "string" ? Buffer.from(body)
+      : Buffer.from(JSON.stringify(body || ""));
+    const options = {
+      hostname: parsed.hostname,
+      port: parsed.port || (isHttps ? 443 : 80),
+      path: parsed.pathname + (parsed.search || ""),
+      method,
+      headers: { ...headers, "Content-Length": bodyBuf.length }
+    };
+    const req = lib.request(options, res => {
+      const chunks = [];
+      res.on("data", c => chunks.push(c));
+      res.on("end", () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString() }));
+    });
+    req.on("error", reject);
+    req.write(bodyBuf);
+    req.end();
+  });
+}
+
+// Build multipart/form-data body (Buffer) for Cloudflare Pages file upload
+function buildMultipart(boundary, fields, files) {
+  const CRLF = "\r\n";
+  const parts = [];
+  for (const [name, value] of Object.entries(fields)) {
+    parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="${name}"${CRLF}${CRLF}${value}${CRLF}`));
+  }
+  for (const [name, { filename, contentType, data }] of Object.entries(files)) {
+    parts.push(Buffer.from(`--${boundary}${CRLF}Content-Disposition: form-data; name="${name}"; filename="${filename}"${CRLF}Content-Type: ${contentType}${CRLF}${CRLF}`));
+    parts.push(data instanceof Buffer ? data : Buffer.from(data));
+    parts.push(Buffer.from(CRLF));
+  }
+  parts.push(Buffer.from(`--${boundary}--${CRLF}`));
+  return Buffer.concat(parts);
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+const PORT = 3000;
+// Put your Google API key here OR set the GOOGLE_API_KEY environment variable:
+// GOOGLE_API_KEY=AIzaSy... node server.js
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "AIzaSyC__U7ow7tDJbYn3EzR3aeNA4_VTPQqZuI";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", chunk => body += chunk);
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+
+// Simple in-memory cache (city+category → results, expires after 7 days)
+const searchCache = new Map();
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+
+// ── Server ────────────────────────────────────────────────────────────────────
+const server = http.createServer(async (req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const pathname = parsedUrl.pathname;
+
+  // CORS headers for local dev
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204); res.end(); return;
+  }
+
+  // ── Serve static files ─────────────────────────────────────────────────────
+  if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
+    const filePath = path.join(__dirname, "index.html");
+    fs.readFile(filePath, (err, data) => {
+      if (err) { res.writeHead(404); res.end("Not found"); return; }
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(data);
+    });
+    return;
+  }
+
+  // ── POST /api/search — Google Places proxy ─────────────────────────────────
+  if (req.method === "POST" && pathname === "/api/search") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const { city, category } = body;
+
+      if (!city || !category) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "city and category are required" }));
+        return;
+      }
+
+      const cacheKey = `${category.toLowerCase()}::${city.toLowerCase().trim()}`;
+      const cached = searchCache.get(cacheKey);
+      if (cached && Date.now() - cached.ts < CACHE_TTL) {
+        console.log(`[CACHE HIT] ${category} in ${city}`);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ results: cached.data, cached: true, count: cached.data.length }));
+        return;
+      }
+
+      console.log(`[SEARCH] ${category} in ${city} → calling Google Places API...`);
+
+      const fieldMask = [
+        "places.id", "places.displayName", "places.formattedAddress",
+        "places.nationalPhoneNumber", "places.rating", "places.userRatingCount",
+        "places.websiteUri", "places.googleMapsUri", "places.primaryType"
+      ].join(",");
+
+      const apiKey = GOOGLE_API_KEY;
+      if (apiKey === "YOUR_GOOGLE_API_KEY_HERE") {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "No API key set. Add GOOGLE_API_KEY to .env or update server.js" }));
+        return;
+      }
+
+      const googleBody = JSON.stringify({
+        textQuery: `${category} in ${city}`,
+        maxResultCount: 20
+      });
+
+      const googleRes = await httpRequest(
+        "https://places.googleapis.com/v1/places:searchText",
+        "POST",
+        {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": fieldMask
+        },
+        googleBody
+      );
+
+      const data = JSON.parse(googleRes.body);
+
+      if (!data.places) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ results: [], count: 0, message: "No results from Google" }));
+        return;
+      }
+
+      const results = data.places
+        .filter(p => !p.websiteUri)
+        .map(p => ({
+          id: p.id,
+          name: p.displayName?.text || "Unknown Business",
+          category, city,
+          phone: p.nationalPhoneNumber || null,
+          address: p.formattedAddress || "",
+          rating: p.rating || 0,
+          reviewCount: p.userRatingCount || 0,
+          hasWebsite: false,
+          stage: "new",
+          mapsUrl: p.googleMapsUri || "#",
+          foundAt: Date.now(),
+          sentAt: null, followUpAt: null, convertedAt: null,
+          previewUrl: null, email: null, notes: ""
+        }));
+
+      console.log(`[SEARCH] Found ${data.places.length} total, ${results.length} without websites`);
+
+      // Cache the result
+      searchCache.set(cacheKey, { data: results, ts: Date.now() });
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ results, count: results.length, cached: false }));
+
+    } catch (err) {
+      console.error("[SEARCH ERROR]", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/contact — contact form handler ───────────────────────────────
+  if (req.method === "POST" && pathname === "/api/contact") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      console.log("\n📧 CONTACT FORM SUBMISSION:");
+      console.log("  Business:", body.business_name);
+      console.log("  To:", body.business_email);
+      console.log("  From:", body.name, "<" + body.email + ">");
+      console.log("  Phone:", body.phone);
+      console.log("  Message:", body.message);
+      console.log("  (In production this would be emailed via Resend)\n");
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, message: "Contact form received (logged to console in dev mode)" }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/add-lead — n8n adds a discovered lead ───────────────────────
+  if (req.method === "POST" && pathname === "/api/add-lead") {
+    try {
+      const lead = JSON.parse(await readBody(req));
+      // Read existing leads file, append, save back
+      const leadsFile = path.join(__dirname, "leads.json");
+      let leads = [];
+      try { leads = JSON.parse(fs.readFileSync(leadsFile, "utf8")); } catch {}
+      if (!leads.find(l => l.id === lead.id)) {
+        leads.push(lead);
+        fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2));
+        console.log(`[LEAD ADDED] ${lead.name} — ${lead.city}`);
+      } else {
+        console.log(`[LEAD EXISTS] ${lead.name} — skipping`);
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, total: leads.length }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── GET /api/leads — dashboard polls for n8n-added leads ──────────────────
+  if (req.method === "GET" && pathname === "/api/leads") {
+    try {
+      const leadsFile = path.join(__dirname, "leads.json");
+      let leads = [];
+      try { leads = JSON.parse(fs.readFileSync(leadsFile, "utf8")); } catch {}
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ leads }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/update-lead — n8n updates a lead's stage ────────────────────
+  if (req.method === "POST" && pathname === "/api/update-lead") {
+    try {
+      const update = JSON.parse(await readBody(req));
+      const leadsFile = path.join(__dirname, "leads.json");
+      let leads = [];
+      try { leads = JSON.parse(fs.readFileSync(leadsFile, "utf8")); } catch {}
+      leads = leads.map(l => l.id === update.id ? { ...l, ...update } : l);
+      fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2));
+      console.log(`[LEAD UPDATED] ${update.id} → stage: ${update.stage || "unchanged"}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/n8n-trigger — trigger n8n webhook ────────────────────────────
+  if (req.method === "POST" && pathname === "/api/n8n-trigger") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const webhookUrl = body.webhookUrl;
+      const payload = body.payload;
+
+      if (!webhookUrl) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "webhookUrl required" }));
+        return;
+      }
+
+      const result = await httpRequest(
+        webhookUrl,
+        "POST",
+        { "Content-Type": "application/json" },
+        JSON.stringify(payload)
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, n8nResponse: result.body }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── Shared deploy helper (used by /api/deploy and /api/deploy-home) ──────────
+  // V2 Cloudflare Pages Direct Upload:
+  //   1. Create/verify project
+  //   2. POST manifest-only → get upload JWT
+  //   3. Upload new file bytes to upload.workers.cloudflare.com
+  //   4. Return deployment URL + updated manifest
+  async function cfDeploy({ cfAccountId, cfApiToken, cfProjectName, manifest, filesToUpload }) {
+    const crypto = require("crypto");
+    const authHeaders = { "Authorization": `Bearer ${cfApiToken}`, "Content-Type": "application/json" };
+    const baseUrl = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/pages/projects`;
+
+    // Step 1: Create project if it doesn't exist
+    console.log(`[DEPLOY] Checking/creating project: ${cfProjectName}`);
+    const createRes = await httpRequest(`${baseUrl}`, "POST", authHeaders,
+      JSON.stringify({ name: cfProjectName, production_branch: "main" }));
+    const createData = JSON.parse(createRes.body);
+    if (createRes.status !== 200 && createRes.status !== 201 &&
+        !createData.errors?.some(e => e.code === 8000026)) {
+      console.log("[DEPLOY] Project note:", createData.errors?.[0]?.message || "Unknown");
+    } else {
+      console.log(`[DEPLOY] Project OK`);
+    }
+
+    // Step 2: POST manifest-only to create deployment (V2)
+    console.log(`[DEPLOY] Posting manifest (${Object.keys(manifest).length} files)...`);
+    const boundary = "HWDeploy" + Date.now();
+    const manifestBody = buildMultipart(boundary, { manifest: JSON.stringify(manifest) }, {});
+    const deployRes = await httpRequest(
+      `${baseUrl}/${cfProjectName}/deployments`, "POST",
+      { "Authorization": `Bearer ${cfApiToken}`, "Content-Type": `multipart/form-data; boundary=${boundary}` },
+      manifestBody
+    );
+    const deployData = JSON.parse(deployRes.body);
+    console.log(`[DEPLOY] Deploy response ${deployRes.status}:`, JSON.stringify(deployData).slice(0, 400));
+    if (!deployData.success) {
+      throw new Error(deployData.errors?.map(e => e.message).join(", ") || "Deployment creation failed");
+    }
+
+    // Step 3: Upload new/changed file bytes using JWT from CF
+    const uploadJwt = deployData.result?.jwt;
+    if (uploadJwt && filesToUpload.length > 0) {
+      console.log(`[DEPLOY] Uploading ${filesToUpload.length} file(s)...`);
+      const payload = filesToUpload.map(({ hash, html }) => ({
+        key: hash,
+        value: Buffer.from(html).toString("base64"),
+        metadata: { contentType: "text/html" },
+        base64: true,
+      }));
+      const uploadRes = await httpRequest(
+        "https://upload.workers.cloudflare.com/api/pages/assets/upload", "POST",
+        { "Authorization": `Bearer ${uploadJwt}`, "Content-Type": "application/json" },
+        JSON.stringify(payload)
+      );
+      const uploadData = JSON.parse(uploadRes.body);
+      console.log(`[DEPLOY] Upload response ${uploadRes.status}:`, JSON.stringify(uploadData).slice(0, 300));
+      if (!uploadData.success) {
+        throw new Error(uploadData.errors?.map(e => e.message).join(", ") || "File upload failed");
+      }
+    } else if (!uploadJwt) {
+      console.log(`[DEPLOY] No upload needed — files already cached`);
+    }
+
+    // Build URLs: deployment-specific (instant) + production sub-path (canonical)
+    const result = deployData.result || {};
+    const baseDeployUrl = result.url || `https://${cfProjectName}.pages.dev`;
+    return { baseDeployUrl, cfProjectName };
+  }
+
+  // ── POST /api/deploy — deploy ONE business site as /slug/index.html ────────
+  // Architecture: all clients share ONE Cloudflare Pages project (cfProjectName).
+  // Each business gets a sub-path: hashtagwebsite.pages.dev/business-slug
+  // The manifest accumulates across deploys — CF caches files by hash.
+  if (req.method === "POST" && pathname === "/api/deploy") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const { slug, html, cfAccountId, cfApiToken, cfProjectName, currentManifest } = body;
+      if (!slug || !html) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "slug and html required" }));
+        return;
+      }
+      if (!cfAccountId || !cfApiToken) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Cloudflare credentials required. Add them in Settings → Cloudflare Pages." }));
+        return;
+      }
+      const crypto = require("crypto");
+      const project = cfProjectName || "hashtagwebsite";
+      const filePath = `/${slug}/index.html`;
+      const fileHash = crypto.createHash("sha256").update(html).digest("hex");
+
+      // Merge new file into the accumulated manifest
+      const updatedManifest = { ...(currentManifest || {}), [filePath]: fileHash };
+
+      const { baseDeployUrl } = await cfDeploy({
+        cfAccountId, cfApiToken, cfProjectName: project,
+        manifest: updatedManifest,
+        filesToUpload: [{ hash: fileHash, html }],
+      });
+
+      // Build the direct sub-path URLs
+      // baseDeployUrl is like https://abc123.hashtagwebsite.pages.dev  (instant)
+      const instantUrl = `${baseDeployUrl}/${slug}`;
+      const productionUrl = `https://${project}.pages.dev/${slug}`;
+
+      console.log(`[DEPLOY] ✅ ${slug} → ${instantUrl}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ url: instantUrl, productionUrl, updatedManifest, success: true }));
+
+    } catch (err) {
+      console.error("[DEPLOY ERROR]", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/deploy-home — deploy hashtagwebpage-home.html as /index.html ──
+  // Deploys the main marketing homepage. Called once from Settings.
+  if (req.method === "POST" && pathname === "/api/deploy-home") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const { cfAccountId, cfApiToken, cfProjectName, currentManifest } = body;
+      if (!cfAccountId || !cfApiToken) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Cloudflare credentials required." }));
+        return;
+      }
+      const crypto = require("crypto");
+      const project = cfProjectName || "hashtagwebsite";
+      const homeFile = path.join(__dirname, "hashtagwebpage-home.html");
+      let homeHtml;
+      try { homeHtml = fs.readFileSync(homeFile, "utf8"); }
+      catch { res.writeHead(404, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "hashtagwebpage-home.html not found in bizprospector folder" })); return; }
+
+      const homeHash = crypto.createHash("sha256").update(homeHtml).digest("hex");
+      const updatedManifest = { ...(currentManifest || {}), "/index.html": homeHash };
+
+      const { baseDeployUrl } = await cfDeploy({
+        cfAccountId, cfApiToken, cfProjectName: project,
+        manifest: updatedManifest,
+        filesToUpload: [{ hash: homeHash, html: homeHtml }],
+      });
+
+      const productionUrl = `https://${project}.pages.dev`;
+      console.log(`[DEPLOY-HOME] ✅ Homepage → ${productionUrl}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ url: baseDeployUrl, productionUrl, updatedManifest, success: true }));
+
+    } catch (err) {
+      console.error("[DEPLOY-HOME ERROR]", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/delete-deployment — remove a Cloudflare Pages project ───────
+  if (req.method === "POST" && pathname === "/api/delete-deployment") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const { projectName, cfAccountId, cfApiToken } = body;
+      if (!projectName || !cfAccountId || !cfApiToken) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "projectName, cfAccountId, cfApiToken required" }));
+        return;
+      }
+      const cfRes = await httpRequest(
+        `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/pages/projects/${projectName}`,
+        "DELETE",
+        { "Authorization": `Bearer ${cfApiToken}`, "Content-Type": "application/json" },
+        "{}"
+      );
+      const data = JSON.parse(cfRes.body);
+      console.log(`[DELETE DEPLOY] ${projectName} → ${cfRes.status}`);
+      res.writeHead(cfRes.status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── POST /api/send-email — send preview link via Resend ───────────────────
+  if (req.method === "POST" && pathname === "/api/send-email") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const { to, businessName, previewUrl, fromEmail, resendKey } = body;
+      if (!resendKey) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, message: "No Resend key — email logged to console only" }));
+        console.log(`\n📧 PREVIEW EMAIL (would send in production):`);
+        console.log(`  To: ${to}`);
+        console.log(`  Business: ${businessName}`);
+        console.log(`  Preview URL: ${previewUrl}\n`);
+        return;
+      }
+      const emailBody = {
+        from: fromEmail || "hello@hashtagwebpage.co",
+        to: [to],
+        subject: `Your free website from HashtagWebpage is ready, ${businessName}!`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+          <h2 style="color:#6366f1">Your website is ready! 🎉</h2>
+          <p>Hi ${businessName} team,</p>
+          <p>We built you a <strong>free website preview</strong>. Take a look:</p>
+          <a href="${previewUrl}" style="display:inline-block;background:#6366f1;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:16px 0">View Your Free Website →</a>
+          <p style="color:#666">This preview is live for <strong>7 days</strong>. Reply to this email or call us to claim your site.</p>
+          <p style="color:#666">Setup: $100 · Hosting: $5/month · Or buy outright for $200</p>
+          <p style="color:#999;font-size:12px">— The HashtagWebpage Team</p>
+        </div>`
+      };
+      const emailRes = await httpRequest(
+        "https://api.resend.com/emails",
+        "POST",
+        { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        JSON.stringify(emailBody)
+      );
+      const data = JSON.parse(emailRes.body);
+      console.log(`[EMAIL] Sent to ${to} → ${emailRes.status}`);
+      res.writeHead(emailRes.status === 200 || emailRes.status === 201 ? 200 : emailRes.status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, ...data }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // 404
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Not found" }));
+});
+
+server.listen(PORT, () => {
+  console.log(`\n🚀 HashtagWebpage running at http://localhost:${PORT}`);
+  console.log(`\n   Google API Key: ${GOOGLE_API_KEY === "YOUR_GOOGLE_API_KEY_HERE" ? "⚠️  NOT SET (add to .env or Settings in the app)" : "✅ Set"}`);
+  console.log(`\n   Tip: Run with your API key:`);
+  console.log(`   GOOGLE_API_KEY=AIzaSy... node server.js\n`);
+});

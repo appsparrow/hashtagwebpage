@@ -1,0 +1,267 @@
+{
+  "name": "BizProspector — Lead Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bizprospector",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook — Receive Lead Events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "bizprospector-lead"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-generate",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "generate_site",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "router",
+      "name": "Route by Event Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the HTML for the business website\nconst lead = $input.first().json.body.lead;\nconst slug = (lead.name + '-' + lead.city.split(',')[0])\n  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');\n\nconst previewUrl = `http://localhost:3000/preview/${slug}`;\n\nreturn [{\n  json: {\n    lead,\n    slug,\n    previewUrl,\n    event: 'site_generated'\n  }\n}];"
+      },
+      "id": "generate-site",
+      "name": "Generate Site Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/update-lead",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "id", "value": "={{ $json.lead.id }}" },
+            { "name": "stage", "value": "site_generated" },
+            { "name": "previewUrl", "value": "={{ $json.previewUrl }}" }
+          ]
+        }
+      },
+      "id": "update-lead-generated",
+      "name": "Update Lead → Site Generated",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "id": "wait-7-days",
+      "name": "Wait 7 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [960, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if lead has responded / converted\n// In production, query your KV or database here\nconst lead = $input.first().json.body.lead;\nconst needsFollowup = lead.stage === 'link_sent';\nreturn [{ json: { ...lead, needsFollowup } }];"
+      },
+      "id": "check-response",
+      "name": "Check if Responded",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "needs-followup",
+              "leftValue": "={{ $json.needsFollowup }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-needs-followup",
+      "name": "Still No Response?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1440, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/update-lead",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "id", "value": "={{ $json.id }}" },
+            { "name": "stage", "value": "archived" }
+          ]
+        }
+      },
+      "id": "archive-lead",
+      "name": "Archive — No Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, event: $('Route by Event Type').first().json.body.event }) }}"
+      },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1680, 480]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 24 }]
+        }
+      },
+      "id": "daily-search-trigger",
+      "name": "⏰ Daily Search Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define which city+category combos to search each day\n// Edit this list to add your target markets\nconst searches = [\n  { city: 'Chicago, IL',    category: 'Plumber' },\n  { city: 'Chicago, IL',    category: 'Electrician' },\n  { city: 'Houston, TX',    category: 'Landscaping' },\n  { city: 'Phoenix, AZ',    category: 'HVAC' },\n  { city: 'Atlanta, GA',    category: 'Roofing' },\n  { city: 'Miami, FL',      category: 'House Cleaning' },\n  { city: 'Dallas, TX',     category: 'Pest Control' },\n  { city: 'Denver, CO',     category: 'Painter' },\n];\n\nreturn searches.map(s => ({ json: s }));"
+      },
+      "id": "define-searches",
+      "name": "Define Search Targets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "city", "value": "={{ $json.city }}" },
+            { "name": "category", "value": "={{ $json.category }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-search-api",
+      "name": "Search via Local Server",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log results summary\nconst results = $input.first().json;\nconst count = results.results?.length || 0;\nconst cached = results.cached ? '(cached)' : '(fresh)';\nconsole.log(`Found ${count} leads without websites ${cached}`);\n\n// Return each lead as a separate item for processing\nif (!results.results || results.results.length === 0) return [];\nreturn results.results.map(r => ({ json: r }));"
+      },
+      "id": "process-results",
+      "name": "Process Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/add-lead",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "save-lead",
+      "name": "Save Lead to Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 600]
+    }
+  ],
+  "connections": {
+    "Webhook — Receive Lead Events": {
+      "main": [[{ "node": "Route by Event Type", "type": "main", "index": 0 }]]
+    },
+    "Route by Event Type": {
+      "main": [
+        [{ "node": "Generate Site Data", "type": "main", "index": 0 }],
+        [{ "node": "Wait 7 Days", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate Site Data": {
+      "main": [[{ "node": "Update Lead → Site Generated", "type": "main", "index": 0 }]]
+    },
+    "Wait 7 Days": {
+      "main": [[{ "node": "Check if Responded", "type": "main", "index": 0 }]]
+    },
+    "Check if Responded": {
+      "main": [[{ "node": "Still No Response?", "type": "main", "index": 0 }]]
+    },
+    "Still No Response?": {
+      "main": [
+        [{ "node": "Archive — No Response", "type": "main", "index": 0 }],
+        [{ "node": "Respond OK", "type": "main", "index": 0 }]
+      ]
+    },
+    "⏰ Daily Search Trigger": {
+      "main": [[{ "node": "Define Search Targets", "type": "main", "index": 0 }]]
+    },
+    "Define Search Targets": {
+      "main": [[{ "node": "Search via Local Server", "type": "main", "index": 0 }]]
+    },
+    "Search via Local Server": {
+      "main": [[{ "node": "Process Results", "type": "main", "index": 0 }]]
+    },
+    "Process Results": {
+      "main": [[{ "node": "Save Lead to Dashboard", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2026-02-25T00:00:00.000Z",
+  "versionId": "1"
+}
