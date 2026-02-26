@@ -943,17 +943,24 @@ function FindLeadsView({ leads, onAddLeads }) {
 
   const search = async () => {
     if (!city.trim()) { setError("Please enter a city"); return; }
+    const googleApiKey = (store.getSettings().googleApiKey || "").trim();
+    if (!googleApiKey) {
+      setError("No Google API key set. Go to Settings → Google Places API and add your key, then restart the server.");
+      return;
+    }
     setLoading(true); setError(null); setResults([]);
     try {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: city.trim(), category })
+        body: JSON.stringify({ city: city.trim(), category, googleApiKey })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      if (!data.results?.length) setError("No businesses without websites found here. Try a different city or category.");
-      else setResults(data.results);
+      if (!data.results?.length) {
+        const detail = data.googleError ? ` Google says: "${data.googleError}"` : "";
+        setError(`No businesses without websites found here.${detail} Try a different city or category.`);
+      } else setResults(data.results);
     } catch (e) {
       setError(`Search failed: ${e.message}`);
     } finally { setLoading(false); }
@@ -1097,6 +1104,8 @@ function PipelineView({ leads, onAction, onSelect, deploying }) {
 // ─────────────────────────────────────────────────────────────
 function SettingsView({ settings, onSave, addToast }) {
   const [form, setForm] = React.useState({
+    googleApiKey:  settings.googleApiKey  || "",
+    cfPagesDomain: settings.cfPagesDomain || "",
     cfAccountId:   settings.cfAccountId   || "",
     cfApiToken:    settings.cfApiToken    || "",
     cfProjectName: settings.cfProjectName || CF_DEFAULT_PROJECT,
@@ -1167,6 +1176,20 @@ function SettingsView({ settings, onSave, addToast }) {
       <div>
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="text-slate-400 text-sm mt-1">Configure API keys and integrations</p>
+      </div>
+
+      {/* Google API */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">🔍 Google Places API</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Required for lead scraping. Get a free key at{" "}
+          <a href="https://console.cloud.google.com/apis/library/places-backend.googleapis.com" target="_blank" rel="noopener" className="text-indigo-400 hover:underline">Google Cloud Console</a>
+          {" "}— enable the <strong className="text-slate-300">Places API (New)</strong>. ~$0.01/search.
+        </p>
+        <F k="googleApiKey" label="API Key" placeholder="AIzaSy..." type="password" help="Google Cloud Console → APIs & Services → Credentials" />
+        {!form.googleApiKey && (
+          <p className="mt-2 text-xs text-amber-400">⚠️ No API key set — searches will fail until you add one here and restart the server</p>
+        )}
       </div>
 
       {/* Cloudflare */}

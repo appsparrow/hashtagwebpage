@@ -109,11 +109,19 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && pathname === "/api/search") {
     try {
       const body = JSON.parse(await readBody(req));
-      const { city, category } = body;
+      const { city, category, googleApiKey: bodyApiKey } = body;
 
       if (!city || !category) {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "city and category are required" }));
+        return;
+      }
+
+      // Key priority: from Settings UI → env var → hardcoded fallback
+      const apiKey = (bodyApiKey || "").trim() || GOOGLE_API_KEY;
+      if (!apiKey || apiKey === "YOUR_GOOGLE_API_KEY_HERE") {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "No Google API key. Go to Settings → Google Places API and add your key." }));
         return;
       }
 
@@ -134,13 +142,6 @@ const server = http.createServer(async (req, res) => {
         "places.websiteUri", "places.googleMapsUri", "places.primaryType"
       ].join(",");
 
-      const apiKey = GOOGLE_API_KEY;
-      if (apiKey === "YOUR_GOOGLE_API_KEY_HERE") {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "No API key set. Add GOOGLE_API_KEY to .env or update server.js" }));
-        return;
-      }
-
       const googleBody = JSON.stringify({
         textQuery: `${category} in ${city}`,
         maxResultCount: 20
@@ -152,16 +153,20 @@ const server = http.createServer(async (req, res) => {
         {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask": fieldMask
+          "X-Goog-FieldMask": fieldMask,
+          "Referer": "https://hashtagwebpage.com"   // needed when key has HTTP referrer restrictions
         },
         googleBody
       );
 
       const data = JSON.parse(googleRes.body);
+      console.log(`[SEARCH] Google raw response (status ${googleRes.status}):`, JSON.stringify(data).slice(0, 600));
 
       if (!data.places) {
+        // Return the raw Google error so the UI can show it
+        const googleErr = data.error?.message || data.error_message || JSON.stringify(data).slice(0, 200);
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ results: [], count: 0, message: "No results from Google" }));
+        res.end(JSON.stringify({ results: [], count: 0, message: "No results from Google", googleError: googleErr }));
         return;
       }
 
