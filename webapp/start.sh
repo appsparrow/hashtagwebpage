@@ -1,8 +1,8 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────
-# #HashtagWebsite — Local Server Starter
-# Run this from the bizprospector/ folder:
-#   cd bizprospector
+# #HashtagWebpage — Local Server Starter
+# Run this from the webapp/ folder:
+#   cd webapp
 #   bash start.sh
 # ─────────────────────────────────────────────────────────
 
@@ -17,7 +17,7 @@ echo "  ██╔══██║██╔══██║╚════██║
 echo "  ██║  ██║██║  ██║███████║██║  ██║   ██║   ██║  ██║╚██████╔╝"
 echo "  ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ "
 echo ""
-echo "  #HashtagWebsite — Lead Gen + Site Builder"
+echo "  #HashtagWebpage — Lead Gen + Site Builder"
 echo "────────────────────────────────────────────────────────"
 
 # Check Node.js

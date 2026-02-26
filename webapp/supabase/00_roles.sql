@@ -1,4 +1,4 @@
--- #HashtagWebsite — Postgres Roles
+-- #HashtagWebpage — Postgres Roles
 -- This runs BEFORE schema.sql (alphabetical order via 00_ prefix)
 -- PostgREST requires 'anon' and 'authenticated' roles to exist.
 

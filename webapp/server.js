@@ -310,9 +310,9 @@ const server = http.createServer(async (req, res) => {
   // ── Shared deploy helper (used by /api/deploy and /api/deploy-home) ──────────
   // V2 Cloudflare Pages Direct Upload:
   //   1. Create/verify project
-  //   2. POST manifest-only → get upload JWT
+  //   2. POST manifest-only → get upload JWT + deployment ID
   //   3. Upload new file bytes to upload.workers.cloudflare.com
-  //   4. Return deployment URL + updated manifest
+  //   4. POST /deployments/{id}/finalize → makes deployment go live
   async function cfDeploy({ cfAccountId, cfApiToken, cfProjectName, manifest, filesToUpload }) {
     const crypto = require("crypto");
     const authHeaders = { "Authorization": `Bearer ${cfApiToken}`, "Content-Type": "application/json" };
@@ -345,6 +345,8 @@ const server = http.createServer(async (req, res) => {
       throw new Error(deployData.errors?.map(e => e.message).join(", ") || "Deployment creation failed");
     }
 
+    const deploymentId = deployData.result?.id;
+
     // Step 3: Upload new/changed file bytes using JWT from CF
     const uploadJwt = deployData.result?.jwt;
     if (uploadJwt && filesToUpload.length > 0) {
@@ -369,52 +371,95 @@ const server = http.createServer(async (req, res) => {
       console.log(`[DEPLOY] No upload needed — files already cached`);
     }
 
+    // Step 4: Finalize deployment — required to make it go live
+    if (deploymentId) {
+      console.log(`[DEPLOY] Finalizing deployment ${deploymentId}...`);
+      const finalizeRes = await httpRequest(
+        `${baseUrl}/${cfProjectName}/deployments/${deploymentId}/finalize`, "POST",
+        { "Authorization": `Bearer ${cfApiToken}`, "Content-Type": "application/json" },
+        "{}"
+      );
+      const finalizeData = JSON.parse(finalizeRes.body);
+      console.log(`[DEPLOY] Finalize response ${finalizeRes.status}:`, JSON.stringify(finalizeData).slice(0, 200));
+      if (!finalizeData.success) {
+        // Not fatal — log warning but continue (some CF plans don't need it)
+        console.warn(`[DEPLOY] Finalize warning:`, finalizeData.errors?.map(e => e.message).join(", "));
+      }
+    }
+
     // Build URLs: deployment-specific (instant) + production sub-path (canonical)
     const result = deployData.result || {};
     const baseDeployUrl = result.url || `https://${cfProjectName}.pages.dev`;
     return { baseDeployUrl, cfProjectName };
   }
 
-  // ── POST /api/deploy — deploy ONE business site as /slug/index.html ────────
-  // Architecture: all clients share ONE Cloudflare Pages project (cfProjectName).
-  // Each business gets a sub-path: hashtagwebsite.pages.dev/business-slug
-  // The manifest accumulates across deploys — CF caches files by hash.
+  // ── Git deploy helper — commit + push one path to GitHub ─────────────────
+  // CF Pages (connected to this GitHub repo) auto-deploys on push (~30s).
+  async function gitPush(repoRelPath, commitMsg) {
+    const { execSync } = require("child_process");
+    const repoRoot = execSync(`git -C "${__dirname}" rev-parse --show-toplevel`, {
+      encoding: "utf8", timeout: 5000
+    }).trim();
+    execSync(`git -C "${repoRoot}" add "${repoRelPath}"`, { encoding: "utf8", timeout: 5000 });
+    execSync(`git -C "${repoRoot}" commit -m "${commitMsg}"`, {
+      encoding: "utf8", timeout: 5000,
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "HashtagWebpage Bot",
+        GIT_AUTHOR_EMAIL: "deploy@hashtagwebpage.co",
+        GIT_COMMITTER_NAME: "HashtagWebpage Bot",
+        GIT_COMMITTER_EMAIL: "deploy@hashtagwebpage.co"
+      }
+    });
+    execSync(`git -C "${repoRoot}" push`, { encoding: "utf8", timeout: 30000 });
+    return repoRoot;
+  }
+
+  // ── POST /api/deploy — save site to sites/[slug]/ and push to GitHub ──────
+  // CF Pages (GitHub-connected) auto-deploys the webapp/sites/ folder.
+  // Configure "CF Pages Domain" in Settings → Cloudflare Pages:
+  //   hashtagwebpage.com  or  hashtagwebpage.pages.dev
   if (req.method === "POST" && pathname === "/api/deploy") {
     try {
       const body = JSON.parse(await readBody(req));
-      const { slug, html, cfAccountId, cfApiToken, cfProjectName, currentManifest } = body;
+      const { slug, html, cfPagesDomain } = body;
       if (!slug || !html) {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "slug and html required" }));
         return;
       }
-      if (!cfAccountId || !cfApiToken) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Cloudflare credentials required. Add them in Settings → Cloudflare Pages." }));
-        return;
+
+      // Step 1: Save HTML locally to sites/[slug]/index.html
+      const siteDir = path.join(__dirname, "sites", slug);
+      fs.mkdirSync(siteDir, { recursive: true });
+      fs.writeFileSync(path.join(siteDir, "index.html"), html, "utf8");
+      console.log(`[DEPLOY] 💾 Saved → sites/${slug}/index.html`);
+
+      // Step 2: Git commit + push → CF Pages auto-deploys on push
+      let gitPushed = false;
+      try {
+        await gitPush(`webapp/sites/${slug}`, `Deploy: ${slug}`);
+        console.log(`[DEPLOY] 🚀 Git pushed → webapp/sites/${slug}`);
+        gitPushed = true;
+      } catch (gitErr) {
+        // Site saved locally — push manually or restart server to retry
+        console.warn(`[DEPLOY] ⚠️  Git push skipped: ${gitErr.message.split("\n")[0]}`);
       }
-      const crypto = require("crypto");
-      const project = cfProjectName || "hashtagwebsite";
-      const filePath = `/${slug}/index.html`;
-      const fileHash = crypto.createHash("sha256").update(html).digest("hex");
 
-      // Merge new file into the accumulated manifest
-      const updatedManifest = { ...(currentManifest || {}), [filePath]: fileHash };
+      // Step 3: Build production URL from configured domain
+      const domain = (cfPagesDomain || "hashtagwebpage.pages.dev")
+        .replace(/^https?:\/\//, "").replace(/\/$/, "");
+      const productionUrl = `https://${domain}/${slug}`;
 
-      const { baseDeployUrl } = await cfDeploy({
-        cfAccountId, cfApiToken, cfProjectName: project,
-        manifest: updatedManifest,
-        filesToUpload: [{ hash: fileHash, html }],
-      });
-
-      // Build the direct sub-path URLs
-      // baseDeployUrl is like https://abc123.hashtagwebsite.pages.dev  (instant)
-      const instantUrl = `${baseDeployUrl}/${slug}`;
-      const productionUrl = `https://${project}.pages.dev/${slug}`;
-
-      console.log(`[DEPLOY] ✅ ${slug} → ${instantUrl}`);
+      console.log(`[DEPLOY] ✅ ${slug} → ${productionUrl} | git: ${gitPushed ? "✅ pushed" : "⚠️ local only"}`);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ url: instantUrl, productionUrl, updatedManifest, success: true }));
+      res.end(JSON.stringify({
+        url: productionUrl,
+        productionUrl,
+        localPath: `sites/${slug}/index.html`,
+        gitPushed,
+        success: true
+      }));
 
     } catch (err) {
       console.error("[DEPLOY ERROR]", err.message);
@@ -424,37 +469,46 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── POST /api/deploy-home — deploy hashtagwebpage-home.html as /index.html ──
-  // Deploys the main marketing homepage. Called once from Settings.
+  // ── POST /api/deploy-home — save homepage to sites/index.html + push ──────
+  // Copies hashtagwebpage-home.html → sites/index.html and pushes to GitHub.
+  // Run this once after setup so your root domain shows the marketing page.
   if (req.method === "POST" && pathname === "/api/deploy-home") {
     try {
       const body = JSON.parse(await readBody(req));
-      const { cfAccountId, cfApiToken, cfProjectName, currentManifest } = body;
-      if (!cfAccountId || !cfApiToken) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Cloudflare credentials required." }));
-        return;
-      }
-      const crypto = require("crypto");
-      const project = cfProjectName || "hashtagwebsite";
+      const { cfPagesDomain } = body;
+
       const homeFile = path.join(__dirname, "hashtagwebpage-home.html");
       let homeHtml;
       try { homeHtml = fs.readFileSync(homeFile, "utf8"); }
-      catch { res.writeHead(404, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "hashtagwebpage-home.html not found in bizprospector folder" })); return; }
+      catch {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "hashtagwebpage-home.html not found" }));
+        return;
+      }
 
-      const homeHash = crypto.createHash("sha256").update(homeHtml).digest("hex");
-      const updatedManifest = { ...(currentManifest || {}), "/index.html": homeHash };
+      // Save to sites/index.html (root of the CF Pages deployed folder)
+      const sitesDir = path.join(__dirname, "sites");
+      fs.mkdirSync(sitesDir, { recursive: true });
+      fs.writeFileSync(path.join(sitesDir, "index.html"), homeHtml, "utf8");
+      console.log(`[DEPLOY-HOME] 💾 Saved → sites/index.html`);
 
-      const { baseDeployUrl } = await cfDeploy({
-        cfAccountId, cfApiToken, cfProjectName: project,
-        manifest: updatedManifest,
-        filesToUpload: [{ hash: homeHash, html: homeHtml }],
-      });
+      // Git commit + push
+      let gitPushed = false;
+      try {
+        await gitPush("webapp/sites/index.html", "Deploy: homepage");
+        console.log(`[DEPLOY-HOME] 🚀 Git pushed homepage`);
+        gitPushed = true;
+      } catch (gitErr) {
+        console.warn(`[DEPLOY-HOME] ⚠️  Git push skipped: ${gitErr.message.split("\n")[0]}`);
+      }
 
-      const productionUrl = `https://${project}.pages.dev`;
-      console.log(`[DEPLOY-HOME] ✅ Homepage → ${productionUrl}`);
+      const domain = (cfPagesDomain || "hashtagwebpage.pages.dev")
+        .replace(/^https?:\/\//, "").replace(/\/$/, "");
+      const productionUrl = `https://${domain}`;
+
+      console.log(`[DEPLOY-HOME] ✅ Homepage → ${productionUrl} | git: ${gitPushed ? "✅ pushed" : "⚠️ local only"}`);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ url: baseDeployUrl, productionUrl, updatedManifest, success: true }));
+      res.end(JSON.stringify({ url: productionUrl, productionUrl, gitPushed, success: true }));
 
     } catch (err) {
       console.error("[DEPLOY-HOME ERROR]", err.message);
@@ -533,6 +587,43 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message }));
     }
+    return;
+  }
+
+  // ── GET /api/sites — list all locally saved site slugs ────────────────────
+  if (req.method === "GET" && pathname === "/api/sites") {
+    try {
+      const sitesDir = path.join(__dirname, "sites");
+      let slugs = [];
+      if (fs.existsSync(sitesDir)) {
+        slugs = fs.readdirSync(sitesDir).filter(d =>
+          fs.existsSync(path.join(sitesDir, d, "index.html"))
+        );
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ sites: slugs, count: slugs.length }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── GET /sites/:slug — serve a locally saved site ─────────────────────────
+  if (req.method === "GET" && pathname.startsWith("/sites/")) {
+    const parts = pathname.split("/").filter(Boolean);  // ["sites", "slug"]
+    const slug = parts[1];
+    if (slug) {
+      const siteFile = path.join(__dirname, "sites", slug, "index.html");
+      if (fs.existsSync(siteFile)) {
+        const html = fs.readFileSync(siteFile, "utf8");
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(html);
+        return;
+      }
+    }
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Site not found");
     return;
   }
 

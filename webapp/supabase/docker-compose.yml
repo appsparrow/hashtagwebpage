@@ -1,4 +1,4 @@
-# #HashtagWebsite — Supabase Local Stack (Docker)
+# #HashtagWebpage — Supabase Local Stack (Docker)
 #
 # USAGE:
 #   cd bizprospector/supabase
@@ -18,7 +18,7 @@
 version: "3.8"
 
 networks:
-  hashtagwebsite:
+  hashtagwebpage:
     driver: bridge
 
 services:
@@ -27,13 +27,13 @@ services:
     image: postgres:15-alpine
     container_name: hw-postgres
     restart: unless-stopped
-    networks: [hashtagwebsite]
+    networks: [hashtagwebpage]
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: hashtagwebsite
-      POSTGRES_DB: hashtagwebsite
+      POSTGRES_PASSWORD: hashtagwebsite   # DB password — do not change (existing data)
+      POSTGRES_DB: hashtagwebsite         # DB name — do not change (existing data)
     volumes:
       - hw_pgdata:/var/lib/postgresql/data
       - ./00_roles.sql:/docker-entrypoint-initdb.d/00_roles.sql  # creates anon/authenticated roles
@@ -49,7 +49,7 @@ services:
     image: postgrest/postgrest:v12.0.2
     container_name: hw-postgrest
     restart: unless-stopped
-    networks: [hashtagwebsite]
+    networks: [hashtagwebpage]
     ports:
       - "54321:3000"
     environment:
@@ -68,7 +68,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: hw-pgadmin
     restart: unless-stopped
-    networks: [hashtagwebsite]
+    networks: [hashtagwebpage]
     ports:
       - "54323:80"
     environment:

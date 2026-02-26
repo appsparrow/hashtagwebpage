@@ -1,4 +1,4 @@
--- #HashtagWebsite — Supabase / PostgreSQL Schema
+-- #HashtagWebpage — Supabase / PostgreSQL Schema
 -- Run this in Supabase Studio SQL editor or via psql
 -- Local: http://localhost:54323 → SQL Editor
 -- Cloud: https://supabase.com → your project → SQL Editor

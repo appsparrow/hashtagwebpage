@@ -1135,23 +1135,19 @@ function SettingsView({ settings, onSave, addToast }) {
   };
 
   const deployHomepage = async () => {
-    if (!form.cfAccountId || !form.cfApiToken) { addToast("Enter Cloudflare credentials first", "error"); return; }
     setDeployingHome(true);
     try {
       const res = await fetch("/api/deploy-home", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cfAccountId: form.cfAccountId,
-          cfApiToken: form.cfApiToken,
-          cfProjectName: form.cfProjectName || CF_DEFAULT_PROJECT,
-          currentManifest: manifest
+          cfPagesDomain: form.cfPagesDomain || "hashtagwebpage.pages.dev"
         })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Deploy failed");
-      onSave({ ...settings, ...form, cfManifest: data.updatedManifest || manifest });
-      addToast(`✅ Homepage deployed → ${data.productionUrl}`);
+      onSave({ ...settings, ...form });
+      addToast(`✅ Homepage ${data.gitPushed ? "pushed to GitHub" : "saved locally"} → ${data.productionUrl}`);
     } catch (e) {
       addToast(`Homepage deploy failed: ${e.message}`, "error");
     } finally { setDeployingHome(false); }
@@ -1177,13 +1173,15 @@ function SettingsView({ settings, onSave, addToast }) {
       <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
         <h2 className="text-base font-semibold text-white mb-1">☁️ Cloudflare Pages</h2>
         <p className="text-xs text-slate-500 mb-4">
-          All client sites deploy as sub-paths under one project:
-          <code className="text-indigo-400 ml-1">hashtagwebpage.pages.dev/business-slug</code>
+          Sites deploy via GitHub → CF Pages auto-deploys in ~30s. Set your domain below
+          so generated links use <code className="text-indigo-400 mx-1">hashtagwebpage.com/business-slug</code>
+          or <code className="text-indigo-400 mx-1">hashtagwebpage.pages.dev/business-slug</code>.
         </p>
         <div className="space-y-3">
-          <F k="cfAccountId"   label="Account ID"         placeholder="abc123def..."     type="password" help="Cloudflare Dashboard → right sidebar" />
-          <F k="cfApiToken"    label="API Token"          placeholder="your-api-token"   type="password" help="cloudflare.com → Profile → API Tokens → Pages:Edit" />
-          <F k="cfProjectName" label="Project Name"       placeholder="hashtagwebpage"               help="The single CF Pages project that hosts all client sites" />
+          <F k="cfPagesDomain" label="Pages Domain" placeholder="hashtagwebpage.com" help="Your CF Pages domain — hashtagwebpage.com or hashtagwebpage.pages.dev" />
+          <F k="cfAccountId"   label="Account ID"   placeholder="abc123def..."       type="password" help="Cloudflare Dashboard → right sidebar (needed for delete only)" />
+          <F k="cfApiToken"    label="API Token"    placeholder="your-api-token"     type="password" help="cloudflare.com → Profile → API Tokens → Pages:Edit" />
+          <F k="cfProjectName" label="Project Name" placeholder="hashtagwebpage"     help="CF Pages project name (must match the GitHub-connected project)" />
         </div>
 
         {/* Manifest */}
@@ -1362,20 +1360,18 @@ function App() {
       }
       const slug           = slugify(lead.name, lead.city);
       const html           = generateSiteHTML(lead);
-      const cfProjectName  = settings.cfProjectName || CF_DEFAULT_PROJECT;
-      const currentManifest = settings.cfManifest || {};
 
       setDeploying(prev => new Set([...prev, id]));
       try {
         const res = await fetch("/api/deploy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, html, cfAccountId: settings.cfAccountId, cfApiToken: settings.cfApiToken, cfProjectName, currentManifest })
+          body: JSON.stringify({ slug, html, cfPagesDomain: settings.cfPagesDomain || "hashtagwebpage.pages.dev" })
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || "Deploy failed");
 
-        const newSettings = { ...settings, cfManifest: data.updatedManifest || currentManifest };
+        const newSettings = { ...settings };
         saveSettings(newSettings);
 
         const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: data.productionUrl } : l);

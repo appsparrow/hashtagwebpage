@@ -1,0 +1,4 @@
+# CF Pages routing rules
+# Each client site lives at /slug/index.html — no SPA fallback needed.
+# Unknown paths return a real 404 (not the homepage).
+/  /index.html  200
