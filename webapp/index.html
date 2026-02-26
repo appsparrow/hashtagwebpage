@@ -235,162 +235,271 @@ function slugify(name, city) {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-function generateSiteHTML(lead) {
+function generateSiteHTML(lead, opts = {}) {
   const { name, category, phone = "Call us for a quote", address, city, rating, reviewCount: reviews } = lead;
+  const { siteVisible = true } = opts;
+
+  // Category slug for hero image lookup → user places images at sites/assets/categories/[slug].jpg
+  const catSlug = category.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  const heroImg = `/assets/categories/${catSlug}.jpg`;
 
   const themes = {
-    "Plumber":        { color: "#1e3a8a", accent: "#3b82f6", icon: "🔧", services: ["Pipe Repair & Replacement","Drain Cleaning","Water Heater Install","Emergency Plumbing"] },
-    "Electrician":    { color: "#4c1d95", accent: "#8b5cf6", icon: "⚡", services: ["Panel Upgrades","Outlet & Switch Install","Wiring & Rewiring","Emergency Electrical"] },
-    "Landscaping":    { color: "#14532d", accent: "#22c55e", icon: "🌿", services: ["Lawn Mowing & Edging","Tree & Shrub Trimming","Garden Design","Seasonal Cleanup"] },
-    "House Cleaning": { color: "#0c4a6e", accent: "#0ea5e9", icon: "🧹", services: ["Deep Cleaning","Regular Maintenance","Move-in / Move-out","Post-Construction Clean"] },
-    "Roofing":        { color: "#78350f", accent: "#f59e0b", icon: "🏚️", services: ["Roof Repair","Full Replacement","Roof Inspection","Storm Damage Repair"] },
-    "HVAC":           { color: "#7f1d1d", accent: "#ef4444", icon: "❄️", services: ["AC Repair & Service","Heating Systems","New Installation","Maintenance Plans"] },
-    "Painter":        { color: "#1e3a5f", accent: "#60a5fa", icon: "🎨", services: ["Interior Painting","Exterior Painting","Cabinet Refinishing","Deck Staining"] },
-    "Handyman":       { color: "#1c1917", accent: "#a78bfa", icon: "🔨", services: ["General Repairs","Furniture Assembly","Door & Window Fixes","Odd Jobs"] },
-    "Auto Repair":    { color: "#1c1917", accent: "#94a3b8", icon: "🚗", services: ["Oil & Filter Change","Brake Service","Engine Diagnostics","Tire Rotation"] },
-    "Barber":         { color: "#3b0764", accent: "#a855f7", icon: "✂️", services: ["Haircuts","Beard Trim & Shape","Line-up & Fade","Hot Towel Shave"] },
-    "Nail Salon":     { color: "#831843", accent: "#ec4899", icon: "💅", services: ["Manicure","Pedicure","Gel & Acrylic","Nail Art"] },
-    "Pet Grooming":   { color: "#164e63", accent: "#06b6d4", icon: "🐾", services: ["Bath & Brush","Haircut & Styling","Nail Trim","Ear Cleaning"] },
-    "Tree Service":   { color: "#14532d", accent: "#86efac", icon: "🌳", services: ["Tree Trimming","Tree Removal","Stump Grinding","Emergency Service"] },
-    "Pest Control":   { color: "#451a03", accent: "#fb923c", icon: "🐛", services: ["Inspection","Extermination","Rodent Control","Preventive Treatment"] },
-    "Pool Service":   { color: "#0c4a6e", accent: "#38bdf8", icon: "🏊", services: ["Pool Cleaning","Chemical Balancing","Equipment Repair","Opening & Closing"] },
+    "Plumber":          { pri:"#1d4ed8", sec:"#1e3a8a", acc:"#60a5fa", light:"#eff6ff", mid:"#bfdbfe", icon:"🔧", tagline:`Fast, Reliable Plumbing in ${city}`, svcs:["Pipe Repair & Replacement","Drain Cleaning","Water Heater Install","Emergency Plumbing","Leak Detection","Sewer Line Service"] },
+    "Electrician":      { pri:"#7c3aed", sec:"#5b21b6", acc:"#a78bfa", light:"#f5f3ff", mid:"#ddd6fe", icon:"⚡", tagline:`Licensed Electrician Serving ${city}`, svcs:["Panel Upgrades","Outlet & Switch Install","Wiring & Rewiring","Emergency Electrical","EV Charger Install","Smart Home Wiring"] },
+    "Landscaping":      { pri:"#15803d", sec:"#166534", acc:"#4ade80", light:"#f0fdf4", mid:"#bbf7d0", icon:"🌿", tagline:`Beautiful Lawns & Gardens in ${city}`, svcs:["Lawn Mowing & Edging","Tree & Shrub Trimming","Garden Design","Seasonal Cleanup","Irrigation Systems","Mulching & Beds"] },
+    "House Cleaning":   { pri:"#0369a1", sec:"#075985", acc:"#38bdf8", light:"#f0f9ff", mid:"#bae6fd", icon:"✨", tagline:`Spotless Cleaning for ${city} Homes`, svcs:["Deep Cleaning","Regular Maintenance","Move-in / Move-out","Post-Construction","Office Cleaning","Eco-Friendly Products"] },
+    "Roofing":          { pri:"#b45309", sec:"#92400e", acc:"#fbbf24", light:"#fffbeb", mid:"#fde68a", icon:"🏠", tagline:`Expert Roofing Services in ${city}`, svcs:["Roof Repair","Full Replacement","Roof Inspection","Storm Damage","Gutter Installation","Flat Roof Systems"] },
+    "HVAC":             { pri:"#b91c1c", sec:"#991b1b", acc:"#f87171", light:"#fef2f2", mid:"#fecaca", icon:"❄️", tagline:`Comfort Year-Round in ${city}`, svcs:["AC Repair & Service","Heating Systems","New Installation","Maintenance Plans","Indoor Air Quality","Emergency Service"] },
+    "Painter":          { pri:"#0f766e", sec:"#0d6b63", acc:"#2dd4bf", light:"#f0fdfa", mid:"#99f6e4", icon:"🎨", tagline:`Beautiful Paint Jobs in ${city}`, svcs:["Interior Painting","Exterior Painting","Cabinet Refinishing","Deck Staining","Wallpaper Removal","Color Consulting"] },
+    "Handyman":         { pri:"#6d28d9", sec:"#5b21b6", acc:"#a78bfa", light:"#f5f3ff", mid:"#ddd6fe", icon:"🔨", tagline:`Trusted Handyman in ${city}`, svcs:["General Repairs","Furniture Assembly","Door & Window Fixes","Drywall Patch","Tile & Grout","Odd Jobs"] },
+    "Auto Repair":      { pri:"#374151", sec:"#1f2937", acc:"#9ca3af", light:"#f9fafb", mid:"#e5e7eb", icon:"🚗", tagline:`Expert Auto Repair in ${city}`, svcs:["Oil & Filter Change","Brake Service","Engine Diagnostics","Tire Rotation","AC Recharge","Pre-Purchase Inspection"] },
+    "Barber":           { pri:"#9a3412", sec:"#7c2d12", acc:"#fb923c", light:"#fff7ed", mid:"#fed7aa", icon:"✂️", tagline:`Sharp Cuts & Fresh Styles in ${city}`, svcs:["Haircuts","Beard Trim & Shape","Line-up & Fade","Hot Towel Shave","Kids Cuts","Senior Discounts"] },
+    "Nail Salon":       { pri:"#9d174d", sec:"#831843", acc:"#f472b6", light:"#fdf2f8", mid:"#fbcfe8", icon:"💅", tagline:`Beautiful Nails in ${city}`, svcs:["Manicure","Pedicure","Gel & Acrylic","Nail Art","Dip Powder","Lash Extensions"] },
+    "Pet Grooming":     { pri:"#0e7490", sec:"#0c6278", acc:"#22d3ee", light:"#ecfeff", mid:"#a5f3fc", icon:"🐾", tagline:`Pamper Your Pet in ${city}`, svcs:["Bath & Brush","Haircut & Styling","Nail Trim","Ear Cleaning","Teeth Brushing","Full Groom Package"] },
+    "Tree Service":     { pri:"#166534", sec:"#14532d", acc:"#4ade80", light:"#f0fdf4", mid:"#bbf7d0", icon:"🌳", tagline:`Professional Tree Care in ${city}`, svcs:["Tree Trimming","Tree Removal","Stump Grinding","Emergency Service","Tree Health Assessment","Land Clearing"] },
+    "Pest Control":     { pri:"#9a3412", sec:"#7c2d12", acc:"#fb923c", light:"#fff7ed", mid:"#fed7aa", icon:"🛡️", tagline:`Pest-Free Living in ${city}`, svcs:["Inspection","Extermination","Rodent Control","Preventive Treatment","Termite Treatment","Bed Bug Control"] },
+    "Pool Service":     { pri:"#0369a1", sec:"#075985", acc:"#38bdf8", light:"#f0f9ff", mid:"#bae6fd", icon:"🏊", tagline:`Crystal Clear Pools in ${city}`, svcs:["Pool Cleaning","Chemical Balancing","Equipment Repair","Opening & Closing","Filter Service","Leak Detection"] },
+    "Pressure Washing": { pri:"#1d4ed8", sec:"#1e3a8a", acc:"#60a5fa", light:"#eff6ff", mid:"#bfdbfe", icon:"💧", tagline:`Sparkling Clean Surfaces in ${city}`, svcs:["House Washing","Driveway Cleaning","Deck & Patio","Roof Soft Wash","Fence Cleaning","Commercial Washing"] },
   };
 
-  const t = themes[category] || { color: "#1e3a5f", accent: "#6366f1", icon: "⭐", services: ["Professional Service","Licensed & Insured","Free Estimates","Quality Work"] };
+  const t = themes[category] || { pri:"#4f46e5", sec:"#3730a3", acc:"#818cf8", light:"#eef2ff", mid:"#c7d2fe", icon:"⭐", tagline:`Professional Services in ${city}`, svcs:["Expert Service","Licensed & Insured","Free Estimates","Quality Work","Satisfaction Guaranteed","5-Star Service"] };
+
+  const hasRating = rating > 0;
+  const starsFull = hasRating ? Math.round(rating) : 0;
+  const starsStr  = "★".repeat(starsFull) + "☆".repeat(5 - starsFull);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>${name} — ${category} in ${city}</title>
-<meta name="description" content="${name} provides professional ${category.toLowerCase()} services in ${city}. Call today for a free estimate."/>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>${name} | ${category} in ${city}</title>
+<meta name="description" content="${name} — trusted ${category.toLowerCase()} serving ${city}. Call today for a free estimate. Licensed, insured & highly rated."/>
+${!siteVisible ? '<meta name="robots" content="noindex,nofollow"/>' : ""}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: system-ui,-apple-system,sans-serif; color:#1a1a2e; }
-header { background:linear-gradient(135deg,${t.color} 0%,${t.color}cc 100%); color:white; padding:70px 20px 60px; text-align:center; }
-header h1 { font-size:clamp(1.8rem,5vw,3rem); font-weight:800; margin-bottom:10px; }
-.sub { font-size:1.1rem; opacity:.85; margin-bottom:24px; }
-.rating-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.15); padding:7px 18px; border-radius:50px; margin-bottom:22px; font-size:.9rem; }
-.btn { display:inline-block; font-weight:700; padding:15px 34px; border-radius:50px; text-decoration:none; font-size:1.05rem; margin:5px; transition:transform .2s,box-shadow .2s; }
-.btn-primary { background:${t.accent}; color:white; box-shadow:0 4px 18px ${t.accent}55; }
-.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 26px ${t.accent}77; }
-.btn-secondary { background:rgba(255,255,255,.15); color:white; border:2px solid rgba(255,255,255,.4); }
-.btn-secondary:hover { background:rgba(255,255,255,.25); }
-section { padding:64px 20px; max-width:960px; margin:0 auto; }
-section h2 { font-size:1.75rem; font-weight:700; color:${t.color}; margin-bottom:10px; }
-.lead-text { color:#4b5563; font-size:1.05rem; margin-bottom:36px; line-height:1.6; }
-.grid-4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; }
-.service-card { background:#f8faff; border-radius:16px; padding:28px 20px; text-align:center; border:1px solid #e2e8f0; transition:transform .2s,box-shadow .2s; }
-.service-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px #0001; }
-.service-card .icon { font-size:2.2rem; margin-bottom:12px; }
-.service-card h3 { font-weight:600; color:${t.color}; font-size:1rem; }
-.why-item { display:flex; align-items:flex-start; gap:14px; padding:20px; background:#f8faff; border-radius:12px; }
-.why-item .wi { font-size:1.5rem; flex-shrink:0; margin-top:2px; }
-.why-item h4 { font-weight:600; color:#1a1a2e; font-size:.95rem; margin-bottom:4px; }
-.why-item p { color:#6b7280; font-size:.85rem; line-height:1.5; }
-.info-bar { background:${t.color}0d; border-top:1px solid ${t.color}22; border-bottom:1px solid ${t.color}22; padding:20px; text-align:center; font-size:.95rem; color:#374151; }
-.info-bar strong { color:${t.color}; }
-.contact-section { background:${t.color}; color:white; padding:72px 20px; text-align:center; }
-.contact-section h2 { font-size:2rem; font-weight:700; color:white; margin-bottom:10px; }
-.contact-section .lead-text { color:rgba(255,255,255,.8); margin-bottom:0; }
-form { max-width:520px; margin:36px auto 0; text-align:left; }
-form label { display:block; font-size:.85rem; color:rgba(255,255,255,.7); margin:14px 0 6px; }
-input,textarea { width:100%; padding:13px 16px; border-radius:10px; border:2px solid transparent; background:rgba(255,255,255,.12); color:white; font-size:1rem; transition:border-color .2s; }
-input::placeholder,textarea::placeholder { color:rgba(255,255,255,.45); }
-input:focus,textarea:focus { outline:none; border-color:${t.accent}; background:rgba(255,255,255,.18); }
-textarea { height:110px; resize:vertical; }
-.submit-btn { width:100%; margin-top:20px; background:${t.accent}; color:white; font-weight:700; padding:15px; border:none; border-radius:10px; font-size:1.05rem; cursor:pointer; transition:opacity .2s; }
-.submit-btn:hover { opacity:.9; }
-#form-status { margin-top:14px; font-size:.9rem; opacity:.85; }
-footer { background:#0f1a2e; color:#64748b; text-align:center; padding:24px 20px; font-size:.85rem; }
-footer a { color:#94a3b8; text-decoration:none; }
-footer a:hover { color:white; }
-@media(max-width:640px) { .grid-4 { grid-template-columns:1fr 1fr; } }
-@media(max-width:400px) { .grid-4 { grid-template-columns:1fr; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--pri:${t.pri};--sec:${t.sec};--acc:${t.acc};--light:${t.light};--mid:${t.mid}}
+body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line-height:1.6;overflow-x:hidden}
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,0,0,.07);padding:13px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{font-size:1rem;font-weight:800;color:var(--pri);letter-spacing:-.02em}
+.nav-cta{background:var(--pri);color:#fff;padding:9px 20px;border-radius:100px;font-size:.875rem;font-weight:700;text-decoration:none;transition:opacity .15s,transform .15s}
+.nav-cta:hover{opacity:.88;transform:translateY(-1px)}
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--pri)dd 0%,var(--sec) 100%),url('${heroImg}') center/cover no-repeat;padding:88px 24px 100px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 20%,rgba(255,255,255,.14) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 80% 85%,rgba(0,0,0,.2) 0%,transparent 55%);pointer-events:none}
+.hero-inner{position:relative;z-index:1;max-width:720px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:6px 16px;border-radius:100px;font-size:.78rem;font-weight:700;margin-bottom:20px;letter-spacing:.06em;text-transform:uppercase}
+.hero h1{font-size:clamp(2rem,6vw,3.8rem);font-weight:900;line-height:1.07;letter-spacing:-.04em;margin-bottom:14px;text-shadow:0 2px 20px rgba(0,0,0,.15)}
+.hero-sub{font-size:1.1rem;opacity:.88;margin-bottom:26px;font-weight:400}
+.rating-row{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);padding:8px 20px;border-radius:100px;font-size:.93rem;margin-bottom:28px}
+.stars{color:#fbbf24;letter-spacing:2px;font-size:1.1rem}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-call{background:#fff;color:var(--pri);padding:14px 32px;border-radius:100px;font-size:1rem;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.22);transition:transform .15s,box-shadow .15s}
+.btn-call:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
+.btn-quote{background:transparent;color:#fff;padding:14px 32px;border-radius:100px;font-size:1rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:2px solid rgba(255,255,255,.55);transition:background .15s,border-color .15s}
+.btn-quote:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.85)}
+/* TRUST BAR */
+.trust-bar{background:#fff;border-bottom:1px solid #f0f0f0;padding:16px 24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:600;color:#374151;background:var(--light);border:1px solid var(--mid);padding:5px 14px;border-radius:100px}
+/* SECTIONS */
+.section{padding:70px 24px;max-width:1100px;margin:0 auto}
+.section-label{display:inline-block;background:var(--light);color:var(--pri);padding:4px 14px;border-radius:100px;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;border:1px solid var(--mid)}
+.section h2{font-size:clamp(1.6rem,4vw,2.3rem);font-weight:800;color:#111827;letter-spacing:-.035em;margin-bottom:10px;line-height:1.18}
+.section h2 .hl{color:var(--pri)}
+.section-sub{font-size:.98rem;color:#6b7280;max-width:560px;line-height:1.65}
+/* SERVICES */
+.services-bg{background:#f8fafc}
+.services-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;margin-top:38px}
+.service-card{background:#fff;border:1.5px solid var(--mid);border-radius:18px;padding:26px 20px;transition:transform .2s,box-shadow .2s,border-color .2s;position:relative;overflow:hidden}
+.service-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--pri),var(--acc));border-radius:18px 18px 0 0}
+.service-card:hover{transform:translateY(-5px);box-shadow:0 16px 40px rgba(0,0,0,.1);border-color:var(--acc)}
+.service-icon{font-size:1.9rem;margin-bottom:13px}
+.service-card h3{font-weight:700;color:#111827;font-size:.95rem;line-height:1.3}
+.service-card p{font-size:.82rem;color:#6b7280;margin-top:5px;line-height:1.5}
+/* WHY */
+.why-bg{background:var(--light)}
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:38px}
+.why-card{background:#fff;border-radius:16px;padding:24px;display:flex;gap:16px;align-items:flex-start;border:1.5px solid var(--mid);transition:box-shadow .2s}
+.why-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.07)}
+.why-num{width:42px;height:42px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;font-size:.82rem;font-weight:900;display:flex;align-items:center;justify-content:center}
+.why-card h4{font-weight:700;color:#111827;font-size:.95rem;margin-bottom:4px}
+.why-card p{font-size:.82rem;color:#6b7280;line-height:1.5}
+/* RATING */
+.rating-section{background:#fff;padding:70px 24px;text-align:center}
+.rating-big{font-size:4.5rem;font-weight:900;color:var(--pri);letter-spacing:-.05em;line-height:1}
+.stars-big{font-size:2rem;color:#fbbf24;letter-spacing:4px;margin:10px 0}
+.review-count{font-size:.95rem;color:#6b7280}
+.google-badge{display:inline-flex;align-items:center;gap:8px;margin-top:20px;background:#f8fafc;border:1.5px solid #e2e8f0;padding:10px 20px;border-radius:100px;font-size:.83rem;font-weight:600;color:#374151}
+/* INFO BAR */
+.info-bar{background:var(--light);border-top:1px solid var(--mid);border-bottom:1px solid var(--mid);padding:18px 24px;text-align:center}
+.info-items{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.info-item{font-size:.88rem;color:#374151;display:flex;align-items:center;gap:7px}
+.info-item strong{color:var(--pri);font-weight:700}
+/* CONTACT */
+.contact-section{background:linear-gradient(135deg,var(--pri) 0%,var(--sec) 100%);padding:80px 24px;text-align:center;position:relative;overflow:hidden}
+.contact-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 80% 20%,rgba(255,255,255,.11) 0%,transparent 60%);pointer-events:none}
+.contact-inner{position:relative;z-index:1;max-width:540px;margin:0 auto}
+.contact-section h2{font-size:clamp(1.6rem,4vw,2.2rem);font-weight:800;color:#fff;margin-bottom:10px;letter-spacing:-.03em}
+.contact-section p{color:rgba(255,255,255,.82);margin-bottom:32px}
+.form-card{background:#fff;border-radius:20px;padding:30px;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:5px}
+.form-input{width:100%;padding:11px 15px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#111827;font-size:.93rem;font-family:inherit;transition:border-color .2s,background .2s}
+.form-input:focus{outline:none;border-color:var(--pri);background:#fff}
+.form-input::placeholder{color:#9ca3af}
+textarea.form-input{height:96px;resize:vertical}
+.form-submit{width:100%;padding:14px;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;font-size:1rem;font-weight:700;font-family:inherit;transition:opacity .2s,transform .15s;box-shadow:0 6px 20px rgba(0,0,0,.16)}
+.form-submit:hover{opacity:.9;transform:translateY(-1px)}
+.form-submit:disabled{opacity:.65;cursor:not-allowed}
+#form-status{margin-top:12px;font-size:.86rem;text-align:center}
+/* FOOTER */
+footer{background:#0f172a;color:#64748b;text-align:center;padding:26px 24px;font-size:.84rem}
+footer a{color:#94a3b8;text-decoration:none;transition:color .15s}
+footer a:hover{color:#fff}
+.footer-brand{font-size:.92rem;font-weight:800;color:#e2e8f0;margin-bottom:6px}
+/* PREVIEW BANNER */
+${!siteVisible ? `.preview-banner{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#1a1a2e;text-align:center;padding:10px 20px;font-size:.84rem;font-weight:600;box-shadow:0 -4px 20px rgba(0,0,0,.15)}` : ""}
+/* RESPONSIVE */
+@media(max-width:640px){
+  .hero{padding:70px 20px 80px}
+  .services-grid,.why-grid{grid-template-columns:1fr 1fr}
+  .trust-bar{justify-content:flex-start}
+  .hero-btns,.info-items{flex-direction:column;align-items:center}
+}
+@media(max-width:400px){.services-grid,.why-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header>
-  <div style="font-size:3rem;margin-bottom:12px">${t.icon}</div>
-  <h1>${name}</h1>
-  <p class="sub">Professional ${category} Services in ${city}</p>
-  ${rating > 0 ? `<div><div class="rating-badge">⭐ ${rating} Stars &nbsp;·&nbsp; ${reviews} Google Reviews</div></div>` : ""}
-  <div style="margin-top:${rating > 0 ? "14px" : "0"}">
-    <a href="tel:${phone.replace(/\D/g,"")}" class="btn btn-primary">📞 Call: ${phone}</a>
-    <a href="#contact" class="btn btn-secondary">Get Free Quote</a>
-  </div>
-</header>
 
-<section>
-  <h2>Our Services</h2>
-  <p class="lead-text">Reliable, professional ${category.toLowerCase()} services for homeowners and businesses throughout ${city}.</p>
-  <div class="grid-4">
-    ${t.services.map(s => `<div class="service-card"><div class="icon">${t.icon}</div><h3>${s}</h3></div>`).join("\n    ")}
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">${t.icon} ${name}</div>
+  <a href="tel:${phone.replace(/\D/g,"")}" class="nav-cta">📞 Call Now</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">${t.icon} &nbsp;${category} Services</div>
+    <h1>${name}</h1>
+    <p class="hero-sub">${t.tagline}</p>
+    ${hasRating ? `<div style="margin-bottom:26px"><div class="rating-row"><span class="stars">${starsStr}</span><strong>${rating.toFixed(1)}</strong><span style="opacity:.78">&nbsp;·&nbsp;${reviews} Google Reviews</span></div></div>` : ""}
+    <div class="hero-btns">
+      <a href="tel:${phone.replace(/\D/g,"")}" class="btn-call">📞 ${phone}</a>
+      <a href="#contact" class="btn-quote">Get Free Quote →</a>
+    </div>
   </div>
 </section>
 
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item">✅ Licensed & Insured</div>
+  <div class="trust-item">🏆 ${hasRating ? rating.toFixed(1)+"★ Rated" : "Highly Rated"}</div>
+  <div class="trust-item">📍 Serving ${city}</div>
+  <div class="trust-item">💬 Free Estimates</div>
+  <div class="trust-item">⚡ Fast Response</div>
+</div>
+
+<!-- SERVICES -->
+<div class="services-bg">
+  <div class="section">
+    <div class="section-label">What We Do</div>
+    <h2>Our <span class="hl">Services</span></h2>
+    <p class="section-sub">Comprehensive ${category.toLowerCase()} services for homeowners and businesses throughout ${city}.</p>
+    <div class="services-grid">
+      ${t.svcs.map(s => `<div class="service-card"><div class="service-icon">${t.icon}</div><h3>${s}</h3><p>Professional, reliable service with guaranteed satisfaction.</p></div>`).join("\n      ")}
+    </div>
+  </div>
+</div>
+
+<!-- WHY CHOOSE US -->
+<div class="why-bg">
+  <div class="section">
+    <div class="section-label">Why Us</div>
+    <h2>Why ${city} Trusts <span class="hl">${name}</span></h2>
+    <p class="section-sub">We're more than just a service — we're your neighbor, your go-to pro, your peace of mind.</p>
+    <div class="why-grid">
+      <div class="why-card"><div class="why-num">01</div><div><h4>Fast Response</h4><p>Same-day and emergency service available when you need us most.</p></div></div>
+      <div class="why-card"><div class="why-num">02</div><div><h4>Licensed & Insured</h4><p>Fully licensed, bonded, and insured for your complete peace of mind.</p></div></div>
+      <div class="why-card"><div class="why-num">03</div><div><h4>Satisfaction Guaranteed</h4><p>We stand behind every job — 100%. Your satisfaction is our standard.</p></div></div>
+      <div class="why-card"><div class="why-num">04</div><div><h4>Transparent Pricing</h4><p>Free estimates with absolutely no hidden fees or surprise charges.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- INFO BAR -->
 <div class="info-bar">
-  <strong>📍 Serving ${city}</strong> &nbsp;·&nbsp; <strong>📞 ${phone}</strong> &nbsp;·&nbsp; 📍 ${address}
-</div>
-
-<section>
-  <h2>Why Choose Us?</h2>
-  <p class="lead-text">We've been serving the ${city} community with honest work and competitive pricing.</p>
-  <div class="grid-4">
-    <div class="why-item"><div class="wi">⚡</div><div><h4>Fast Response</h4><p>Same-day and emergency service available when you need us most.</p></div></div>
-    <div class="why-item"><div class="wi">🛡️</div><div><h4>Licensed & Insured</h4><p>Fully licensed, bonded, and insured for your peace of mind.</p></div></div>
-    <div class="why-item"><div class="wi">💯</div><div><h4>Satisfaction Guaranteed</h4><p>We stand behind every job we do, 100%.</p></div></div>
-    <div class="why-item"><div class="wi">💰</div><div><h4>Transparent Pricing</h4><p>Free estimates with no hidden fees or surprise charges.</p></div></div>
+  <div class="info-items">
+    <div class="info-item">📍 <strong>Serving ${city}</strong></div>
+    <div class="info-item">📞 <strong><a href="tel:${phone.replace(/\D/g,"")}" style="color:var(--pri);text-decoration:none">${phone}</a></strong></div>
+    <div class="info-item">🗺️ ${address}</div>
   </div>
-</section>
-
-<div id="contact" class="contact-section">
-  <h2>Get a Free Quote</h2>
-  <p class="lead-text">Fill out the form below and we'll be in touch within 24 hours.</p>
-  <form id="contact-form">
-    <input type="hidden" name="business_name" value="${name}" />
-    <label>Your Name *</label>
-    <input type="text" name="name" placeholder="Jane Smith" required />
-    <label>Phone Number *</label>
-    <input type="tel" name="phone" placeholder="(555) 000-0000" required />
-    <label>Email (optional)</label>
-    <input type="email" name="email" placeholder="you@email.com" />
-    <label>How can we help?</label>
-    <textarea name="message" placeholder="Describe your project or question..."></textarea>
-    <button type="submit" class="submit-btn">Send Message →</button>
-  </form>
-  <p id="form-status"></p>
 </div>
 
+${hasRating ? `<!-- RATING -->
+<div class="rating-section">
+  <div class="section-label" style="margin-bottom:20px">Customer Reviews</div>
+  <div class="rating-big">${rating.toFixed(1)}</div>
+  <div class="stars-big">${starsStr}</div>
+  <div class="review-count">${reviews} verified reviews on Google</div>
+  <div>
+    <div class="google-badge">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Verified Google Reviews
+    </div>
+  </div>
+</div>` : ""}
+
+<!-- CONTACT -->
+<div id="contact" class="contact-section">
+  <div class="contact-inner">
+    <h2>Get a Free Quote</h2>
+    <p>Fill in your details and we'll get back to you within 24 hours — usually much faster.</p>
+    <div class="form-card">
+      <form id="contact-form">
+        <input type="hidden" name="business_name" value="${name}"/>
+        <div class="form-group"><label class="form-label">Your Name *</label><input class="form-input" type="text" name="name" placeholder="Jane Smith" required/></div>
+        <div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" type="tel" name="phone" placeholder="(555) 000-0000" required/></div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" name="email" placeholder="you@email.com"/></div>
+        <div class="form-group"><label class="form-label">How can we help?</label><textarea class="form-input" name="message" placeholder="Tell us about your project..."></textarea></div>
+        <button type="submit" class="form-submit">Send My Request →</button>
+        <div id="form-status"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
 <footer>
-  <p>© ${new Date().getFullYear()} ${name} &nbsp;·&nbsp; ${city}</p>
-  <p style="margin-top:6px">Website by <a href="https://hashtagwebpage.pages.dev" target="_blank">HashtagWebpage</a></p>
+  <div class="footer-brand">${t.icon} ${name}</div>
+  <p>${address} &nbsp;·&nbsp; ${city}</p>
+  <p style="margin-top:4px"><a href="tel:${phone.replace(/\D/g,"")}">${phone}</a></p>
+  <p style="margin-top:12px;opacity:.55">© ${new Date().getFullYear()} ${name} &nbsp;·&nbsp; Website by <a href="https://hashtagwebpage.com" target="_blank">HashtagWebpage</a></p>
 </footer>
 
+${!siteVisible ? '<div class="preview-banner">🔒 Preview Mode — This site is not yet public. <a href="https://hashtagwebpage.com" style="color:#1a1a2e;text-decoration:underline">Contact HashtagWebpage</a> to publish it.</div>' : ""}
+
 <script>
-document.getElementById("contact-form").addEventListener("submit", function(e) {
-  e.preventDefault();
-  const btn = this.querySelector(".submit-btn");
-  const status = document.getElementById("form-status");
-  btn.disabled = true; btn.textContent = "Sending...";
-  const data = {};
-  new FormData(this).forEach((v,k) => data[k] = v);
-  fetch("https://formspree.io/f/YOUR_FORM_ID", {
-    method:"POST", headers:{"Content-Type":"application/json","Accept":"application/json"},
-    body: JSON.stringify(data)
-  }).then(r => {
-    if (r.ok) { status.textContent = "✅ Thanks! We'll be in touch within 24 hours."; this.reset(); }
-    else { status.textContent = "❌ Something went wrong. Please call us directly."; }
-  }).catch(() => { status.textContent = "❌ Could not send. Please call us directly."; })
-  .finally(() => { btn.disabled = false; btn.textContent = "Send Message →"; });
-});
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener("click", e => {
-    const el = document.querySelector(a.getAttribute("href"));
-    if (el) { e.preventDefault(); el.scrollIntoView({behavior:"smooth"}); }
+(function(){
+  var form=document.getElementById("contact-form"),status=document.getElementById("form-status");
+  form.addEventListener("submit",function(e){
+    e.preventDefault();
+    var btn=form.querySelector(".form-submit");
+    btn.disabled=true;btn.textContent="Sending...";
+    var data={};new FormData(form).forEach(function(v,k){data[k]=v;});
+    fetch("https://formspree.io/f/YOUR_FORM_ID",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(data)})
+    .then(function(r){
+      if(r.ok){status.innerHTML='<p style="color:#16a34a;font-weight:600;margin-top:12px">✅ Thanks! We\'ll be in touch soon.</p>';form.reset();}
+      else{status.innerHTML='<p style="color:#dc2626;margin-top:12px">❌ Something went wrong. Please call us directly.</p>';}
+    }).catch(function(){status.innerHTML='<p style="color:#dc2626;margin-top:12px">❌ Could not send. Please call us directly.</p>';})
+    .finally(function(){btn.disabled=false;btn.textContent="Send My Request →";});
   });
-});
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){
+    a.addEventListener("click",function(e){var el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"});}});
+  });
+})();
 <\/script>
 </body>
 </html>`;
@@ -621,7 +730,7 @@ function WebsitePreviewModal({ lead, settings, onClose }) {
   const slug = slugify(lead.name, lead.city);
   const proj = settings?.cfProjectName || CF_DEFAULT_PROJECT;
   const deployUrl = `https://${proj}.pages.dev/${slug}`;
-  const html = generateSiteHTML(lead);
+  const html = generateSiteHTML(lead, { siteVisible: settings?.siteVisible !== false });
   const [copied, setCopied] = React.useState(false);
 
   const download = () => {
@@ -1114,6 +1223,7 @@ function SettingsView({ settings, onSave, addToast }) {
     n8nWebhookUrl: settings.n8nWebhookUrl || "",
     supabaseUrl:   settings.supabaseUrl   || "http://localhost:54321",
     supabaseKey:   settings.supabaseKey   || "",
+    siteVisible:   settings.siteVisible   !== false,
   });
   const [saved, setSaved] = React.useState(false);
   const [testingDb, setTestingDb] = React.useState(false);
@@ -1275,6 +1385,88 @@ function SettingsView({ settings, onSave, addToast }) {
         <F k="n8nWebhookUrl" label="n8n Webhook URL" placeholder="http://localhost:5678/webhook/hashtagwebpage" />
       </div>
 
+      {/* Site Visibility */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">🔒 Site Visibility</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          When <strong className="text-slate-300">off</strong>, all generated sites get a "Preview Mode" banner and <code className="text-indigo-400">noindex</code> tag — search engines won't index them. Turn <strong className="text-slate-300">on</strong> when you're ready to accept payments and go live.
+        </p>
+        <label className="flex items-center gap-3 cursor-pointer select-none group">
+          <div
+            onClick={() => set("siteVisible", !form.siteVisible)}
+            className={`relative w-12 h-6 rounded-full transition-colors ${form.siteVisible ? "bg-emerald-500" : "bg-slate-600"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.siteVisible ? "translate-x-6" : "translate-x-0.5"}`} />
+          </div>
+          <div>
+            <div className={`text-sm font-semibold ${form.siteVisible ? "text-emerald-400" : "text-amber-400"}`}>
+              {form.siteVisible ? "✅ Sites are Public — Ready to Accept Customers" : "⚠️ Preview Mode — Sites hidden from search engines"}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              {form.siteVisible ? "New sites will deploy without the preview banner." : "New sites will show a 'Preview Mode' banner and won't be indexed."}
+            </div>
+          </div>
+        </label>
+        <p className="text-xs text-slate-600 mt-3">⚠️ Changing this only affects newly generated sites. Re-generate existing leads to apply.</p>
+      </div>
+
+      {/* Delete Records */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">🗑️ Clear Demo Data</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Run these SQL commands in pgAdmin (<a href="http://localhost:5050" target="_blank" rel="noopener" className="text-indigo-400 hover:underline">localhost:5050</a>) → hashtagwebpage → Query Tool:
+        </p>
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs text-slate-400 font-medium mb-1">Delete ALL leads:</div>
+            <div className="bg-slate-900 rounded-lg px-4 py-3 font-mono text-sm text-emerald-400 flex items-center justify-between gap-3">
+              <span>DELETE FROM leads;</span>
+              <button onClick={() => { navigator.clipboard.writeText("DELETE FROM leads;"); addToast("Copied to clipboard"); }}
+                className="text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded transition-colors flex-shrink-0">
+                Copy
+              </button>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 font-medium mb-1">Delete only test/demo leads (not yet customers):</div>
+            <div className="bg-slate-900 rounded-lg px-4 py-3 font-mono text-sm text-emerald-400 flex items-center justify-between gap-3">
+              <span className="break-all">{"DELETE FROM leads WHERE stage != 'customer';"}</span>
+              <button onClick={() => { navigator.clipboard.writeText("DELETE FROM leads WHERE stage != 'customer';"); addToast("Copied to clipboard"); }}
+                className="text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded transition-colors flex-shrink-0">
+                Copy
+              </button>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-400 font-medium mb-1">Reset sequence (run after delete):</div>
+            <div className="bg-slate-900 rounded-lg px-4 py-3 font-mono text-sm text-slate-400 flex items-center justify-between gap-3">
+              <span>ALTER SEQUENCE leads_id_seq RESTART WITH 1;</span>
+              <button onClick={() => { navigator.clipboard.writeText("ALTER SEQUENCE leads_id_seq RESTART WITH 1;"); addToast("Copied to clipboard"); }}
+                className="text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded transition-colors flex-shrink-0">
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-slate-600 mt-3">Also refresh the app (F5) to clear any cached leads from localStorage.</p>
+      </div>
+
+      {/* Hero Images */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">🖼️ Category Hero Images</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Place hero images in <code className="text-indigo-400">webapp/sites/assets/categories/</code> — named after the category slug. They'll automatically appear as the hero background on generated sites.
+        </p>
+        <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono space-y-1 text-slate-400">
+          <div><span className="text-emerald-400">plumber.jpg</span> → Plumber sites</div>
+          <div><span className="text-emerald-400">electrician.jpg</span> → Electrician sites</div>
+          <div><span className="text-emerald-400">house-cleaning.jpg</span> → House Cleaning sites</div>
+          <div><span className="text-emerald-400">pest-control.jpg</span> → Pest Control sites</div>
+          <div><span className="text-slate-600">... etc (lowercase, hyphens, no spaces)</span></div>
+        </div>
+        <p className="text-xs text-slate-600 mt-3">If no image is found for a category, the gradient hero shows cleanly as a fallback.</p>
+      </div>
+
       {/* Pricing */}
       <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
         <h3 className="text-sm font-semibold text-emerald-400 mb-2">💰 Pricing Model</h3>
@@ -1382,7 +1574,7 @@ function App() {
         return;
       }
       const slug           = slugify(lead.name, lead.city);
-      const html           = generateSiteHTML(lead);
+      const html           = generateSiteHTML(lead, { siteVisible: settings.siteVisible !== false });
 
       setDeploying(prev => new Set([...prev, id]));
       try {
