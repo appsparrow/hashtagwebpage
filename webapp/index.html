@@ -291,9 +291,14 @@ function generateSiteHTML(lead, opts = {}) {
   const { name, category, phone = "Call us for a quote", address, city, rating, reviewCount: reviews } = lead;
   const { siteVisible = true } = opts;
 
-  // Category slug for hero image lookup → user places images at sites/assets/categories/[slug].jpg
-  const catSlug = category.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
-  const heroImg = `/assets/categories/${catSlug}.jpg`;
+  // Category slug for image/logo lookup
+  const catSlug  = category.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  const heroImg  = `/assets/categories/${catSlug}.jpg`;
+  const logoPath = `/assets/logos/${catSlug}.png`;
+  // Inline onerror helpers (escaped for template literal insertion)
+  const logoFallbackHero = `this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline'`;
+  const logoFallbackNav  = `this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline-flex'`;
+  const logoFallbackFoot = `this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='block'`;
 
   const themes = {
     "Plumber":          { pri:"#1d4ed8", sec:"#1e3a8a", acc:"#60a5fa", light:"#eff6ff", mid:"#bfdbfe", icon:"🔧", tagline:`Fast, Reliable Plumbing in ${city}`, svcs:["Pipe Repair & Replacement","Drain Cleaning","Water Heater Install","Emergency Plumbing","Leak Detection","Sewer Line Service"] },
@@ -352,6 +357,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line
 .btn-call:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
 .btn-quote{background:transparent;color:#fff;padding:14px 32px;border-radius:100px;font-size:1rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:2px solid rgba(255,255,255,.55);transition:background .15s,border-color .15s}
 .btn-quote:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.85)}
+/* LOGO */
+.biz-logo{height:64px;width:auto;max-width:200px;object-fit:contain;filter:brightness(0)invert(1);margin-bottom:16px;display:block;margin-left:auto;margin-right:auto}
+.nav-logo{height:36px;width:auto;max-width:140px;object-fit:contain;vertical-align:middle}
+.foot-logo{height:36px;width:auto;max-width:120px;object-fit:contain;filter:brightness(0)invert(.7);margin-bottom:8px}
 /* TRUST BAR */
 .trust-bar{background:#fff;border-bottom:1px solid #f0f0f0;padding:16px 24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .trust-item{display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:600;color:#374151;background:var(--light);border:1px solid var(--mid);padding:5px 14px;border-radius:100px}
@@ -427,14 +436,20 @@ ${!siteVisible ? `.preview-banner{position:fixed;bottom:0;left:0;right:0;z-index
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nav-brand">${t.icon} ${name}</div>
+  <div class="nav-brand">
+    <img class="nav-logo" src="${logoPath}" alt="${name} logo" onerror="${logoFallbackNav}">
+    <span style="display:none;align-items:center;gap:6px">${t.icon} ${name}</span>
+    <span class="nav-name" style="margin-left:8px;font-weight:800;font-size:1rem;color:var(--pri)">${name}</span>
+  </div>
   <a href="tel:${phone.replace(/\D/g,"")}" class="nav-cta">📞 Call Now</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-inner">
-    <div class="hero-badge">${t.icon} &nbsp;${category} Services</div>
+    <img class="biz-logo" src="${logoPath}" alt="${name} logo" onerror="${logoFallbackHero}">
+    <span style="display:none;font-size:2.8rem;margin-bottom:16px">${t.icon}</span>
+    <div class="hero-badge">${category} Services</div>
     <h1>${name}</h1>
     <p class="hero-sub">${t.tagline}</p>
     ${hasRating ? `<div style="margin-bottom:26px"><div class="rating-row"><span class="stars">${starsStr}</span><strong>${rating.toFixed(1)}</strong><span style="opacity:.78">&nbsp;·&nbsp;${reviews} Google Reviews</span></div></div>` : ""}
@@ -525,7 +540,9 @@ ${hasRating ? `<!-- RATING -->
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-brand">${t.icon} ${name}</div>
+  <img class="foot-logo" src="${logoPath}" alt="${name} logo" onerror="${logoFallbackFoot}">
+  <div class="footer-brand" style="display:none">${t.icon} ${name}</div>
+  <div class="footer-brand">${name}</div>
   <p>${address} &nbsp;·&nbsp; ${city}</p>
   <p style="margin-top:4px"><a href="tel:${phone.replace(/\D/g,"")}">${phone}</a></p>
   <p style="margin-top:12px;opacity:.55">© ${new Date().getFullYear()} ${name} &nbsp;·&nbsp; Website by <a href="https://hashtagwebpage.com" target="_blank">HashtagWebpage</a></p>
@@ -788,7 +805,9 @@ function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, onSendPreview
 function SendPreviewModal({ lead, settings, onClose, onSent }) {
   const theme = getCategoryTheme(lead.category);
   const [email, setEmail]       = React.useState(lead.email || "");
+  const [phone, setPhone]       = React.useState(lead.phone || "");
   const [hook, setHook]         = React.useState(getHookMessage(lead));
+  const [shareTab, setShareTab] = React.useState("email"); // "email" | "sms"
   const [sending, setSending]   = React.useState(false);
   const [sent, setSent]         = React.useState(false);
   const [copied, setCopied]     = React.useState(false);
@@ -799,6 +818,15 @@ function SendPreviewModal({ lead, settings, onClose, onSent }) {
   const copyLink = () => {
     navigator.clipboard.writeText(previewUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
+
+  // Short SMS message (fits in 1-2 texts, ~160 chars each)
+  const smsMsg = `Hi! We built ${lead.name} a free website — check it out: ${previewUrl}\n\nKeep it live for $49/mo or own it for $297. Reply to this to get started! – HashtagWebpage`;
+  // WhatsApp can be longer — use the full hook
+  const waMsg  = `${hook}\n\n${previewUrl}\n\n💰 Keep it live for $49/mo · Own it forever for $297\nJust reply or call us to get started!`;
+
+  const openSMS       = () => window.open(`sms:?body=${encodeURIComponent(smsMsg)}`);
+  const openWhatsApp  = () => window.open(`https://wa.me/?text=${encodeURIComponent(waMsg)}`);
+  const copySMSMsg    = () => navigator.clipboard.writeText(smsMsg).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
 
   const sendEmail = async () => {
     if (!email) return;
@@ -905,29 +933,86 @@ function SendPreviewModal({ lead, settings, onClose, onSent }) {
             )}
           </div>
 
-          {/* HOOK MESSAGE */}
+          {/* SHARE TABS */}
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
-              Message <span className="text-slate-600 normal-case font-normal">(editable)</span>
-            </label>
-            <textarea
-              value={hook} onChange={e => setHook(e.target.value)} rows={5}
-              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
-            />
-          </div>
-
-          {/* EMAIL INPUT */}
-          <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Send to Email</label>
-            <div className="flex gap-2">
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="owner@business.com"
-                className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
-              />
+            <div className="flex rounded-xl bg-slate-800 p-1 gap-1 mb-4">
+              {[["email","📧 Email"],["sms","📱 SMS / WhatsApp"]].map(([id,label]) => (
+                <button key={id} onClick={() => setShareTab(id)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${shareTab===id ? "bg-slate-600 text-white" : "text-slate-400 hover:text-slate-200"}`}>
+                  {label}
+                </button>
+              ))}
             </div>
-            {!settings.resendApiKey && (
-              <p className="text-xs text-amber-400 mt-1.5">⚠️ No Resend key in Settings — email won't actually send but will be logged to console.</p>
+
+            {shareTab === "email" && (
+              <div className="space-y-4">
+                {/* Hook message */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                    Email Message <span className="text-slate-600 normal-case font-normal">(editable)</span>
+                  </label>
+                  <textarea value={hook} onChange={e => setHook(e.target.value)} rows={4}
+                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none leading-relaxed" />
+                </div>
+                {/* Email input */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Recipient Email</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="owner@business.com"
+                    className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                  {!settings.resendApiKey && (
+                    <p className="text-xs text-amber-400 mt-1.5">⚠️ No Resend key in Settings — email won't actually send, will be logged to console.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {shareTab === "sms" && (
+              <div className="space-y-4">
+                {/* SMS message preview */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                    SMS Message <span className="text-slate-600 normal-case font-normal">({smsMsg.length} chars)</span>
+                  </label>
+                  <div className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    {smsMsg}
+                  </div>
+                </div>
+
+                {/* Share buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={openWhatsApp}
+                    className="flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold text-sm transition-colors">
+                    <span style={{fontSize:"1.2rem"}}>💬</span> WhatsApp
+                  </button>
+                  <button onClick={openSMS}
+                    className="flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-sm transition-colors">
+                    <span style={{fontSize:"1.2rem"}}>📱</span> SMS App
+                  </button>
+                </div>
+
+                <button onClick={copySMSMsg}
+                  className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm transition-colors">
+                  {copied ? "✓ Copied to Clipboard!" : "📋 Copy Message to Clipboard"}
+                </button>
+
+                {/* Twilio tip */}
+                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+                  <div className="text-xs font-semibold text-indigo-400 mb-2">💡 Automate SMS later</div>
+                  <div className="text-xs text-slate-400 leading-relaxed space-y-1">
+                    <p><strong className="text-slate-300">Cheapest options (US):</strong></p>
+                    <p>• <strong className="text-slate-300">Telnyx</strong> — ~$0.004/SMS, best rate, great API</p>
+                    <p>• <strong className="text-slate-300">Twilio</strong> — ~$0.0079/SMS, easiest setup, most docs</p>
+                    <p>• <strong className="text-slate-300">Textbelt</strong> — 1 free/day, $0.01 after, zero setup</p>
+                    <p className="mt-2 text-slate-500">At 50 SMS/day: ~$6–12/month. Way cheaper than one lost customer.</p>
+                  </div>
+                </div>
+
+                {/* Phone number tip */}
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-slate-400">
+                  <strong className="text-slate-300">Manual flow:</strong> Click WhatsApp or SMS → your phone app opens with the message pre-filled → just pick the contact and send. 30 seconds per lead.
+                </div>
+              </div>
             )}
           </div>
 
@@ -935,17 +1020,24 @@ function SendPreviewModal({ lead, settings, onClose, onSent }) {
 
         {/* Footer actions */}
         <div className="px-6 py-4 border-t border-slate-700 flex gap-3 flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors">Cancel</button>
-          <button onClick={copyLink}
-            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors">
-            {copied ? "✓ Link Copied!" : "📋 Copy Link"}
+          <button onClick={onClose} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors">Close</button>
+          <button onClick={copyLink} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors">
+            {copied ? "✓ Copied!" : "🔗 Copy Link"}
           </button>
-          {sent ? (
-            <div className="flex-1 py-2.5 bg-emerald-700 text-white text-sm rounded-xl text-center font-semibold">✅ Sent!</div>
-          ) : (
-            <button onClick={sendEmail} disabled={sending || !email}
-              className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded-xl transition-colors font-semibold">
-              {sending ? "⏳ Sending..." : "📧 Send Email"}
+          {shareTab === "email" && (
+            sent ? (
+              <div className="flex-1 py-2.5 bg-emerald-700 text-white text-sm rounded-xl text-center font-semibold">✅ Email Sent!</div>
+            ) : (
+              <button onClick={sendEmail} disabled={sending || !email}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded-xl transition-colors font-semibold">
+                {sending ? "⏳ Sending..." : "📧 Send Email"}
+              </button>
+            )
+          )}
+          {shareTab === "sms" && (
+            <button onClick={openWhatsApp}
+              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-xl transition-colors font-semibold">
+              💬 Open WhatsApp
             </button>
           )}
         </div>
