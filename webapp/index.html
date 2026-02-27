@@ -1674,6 +1674,19 @@ function PipelineView({ leads, onAction, onSelect, onSendPreview, deploying }) {
 // ─────────────────────────────────────────────────────────────
 // SETTINGS VIEW
 // ─────────────────────────────────────────────────────────────
+// Module-level so React never remounts on re-render
+function SettingsField({ k, label, placeholder, type, help, form, set }) {
+  return (
+    <div>
+      <label className="text-sm text-slate-300 mb-1.5 block font-medium">{label}</label>
+      <input type={type || "text"} value={form[k] || ""} onChange={e => set(k, e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
+      {help && <p className="text-xs text-slate-500 mt-1">{help}</p>}
+    </div>
+  );
+}
+
 function SettingsView({ settings, onSave, addToast }) {
   const [form, setForm] = React.useState({
     googleApiKey:  settings.googleApiKey  || "",
@@ -1738,14 +1751,6 @@ function SettingsView({ settings, onSave, addToast }) {
     } finally { setDeployingHome(false); }
   };
 
-  const F = ({ k, label, placeholder, type="text", help=null }) => (
-    <div>
-      <label className="text-sm text-slate-300 mb-1.5 block font-medium">{label}</label>
-      <input type={type} value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder}
-        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" />
-      {help && <p className="text-xs text-slate-500 mt-1">{help}</p>}
-    </div>
-  );
 
   return (
     <div className="space-y-6 fade-in max-w-2xl">
@@ -1762,7 +1767,7 @@ function SettingsView({ settings, onSave, addToast }) {
           <a href="https://console.cloud.google.com/apis/library/places-backend.googleapis.com" target="_blank" rel="noopener" className="text-indigo-400 hover:underline">Google Cloud Console</a>
           {" "}— enable the <strong className="text-slate-300">Places API (New)</strong>. ~$0.01/search.
         </p>
-        <F k="googleApiKey" label="API Key" placeholder="AIzaSy..." type="password" help="Google Cloud Console → APIs & Services → Credentials" />
+        <SettingsField k="googleApiKey" label="API Key" placeholder="AIzaSy..." type="password" help="Google Cloud Console → APIs & Services → Credentials" form={form} set={set} />
         {!form.googleApiKey && (
           <p className="mt-2 text-xs text-amber-400">⚠️ No API key set — searches will fail until you add one here and restart the server</p>
         )}
@@ -1777,11 +1782,11 @@ function SettingsView({ settings, onSave, addToast }) {
           or <code className="text-indigo-400 mx-1">hashtagwebpage.pages.dev/business-slug</code>.
         </p>
         <div className="space-y-3">
-          <F k="cfPagesDomain" label="Pages Domain" placeholder="hashtagwebpage.com" help="Your CF Pages domain — hashtagwebpage.com or hashtagwebpage.pages.dev" />
-          <F k="cfProjectName" label="CF Project Name" placeholder="hashtagwebpage"  help="CF Pages project name (same as GitHub repo CF Pages is connected to)" />
-          <F k="githubOwner"   label="GitHub Owner"    placeholder="yourusername"    help="Your GitHub username or org (e.g. appsparrow)" />
-          <F k="githubRepo"    label="GitHub Repo"     placeholder="hashtagwebpage"  help="The repo CF Pages deploys from (e.g. hashtagwebpage)" />
-          <F k="githubToken"   label="GitHub Token"    placeholder="ghp_xxxx..."     type="password" help="Personal Access Token with Contents:Write scope — github.com/settings/tokens" />
+          <SettingsField k="cfPagesDomain" label="Pages Domain" placeholder="hashtagwebpage.com" help="Your CF Pages domain — hashtagwebpage.com or hashtagwebpage.pages.dev" form={form} set={set} />
+          <SettingsField k="cfProjectName" label="CF Project Name" placeholder="hashtagwebpage"  help="CF Pages project name (same as GitHub repo CF Pages is connected to)" form={form} set={set} />
+          <SettingsField k="githubOwner"   label="GitHub Owner"    placeholder="yourusername"    help="Your GitHub username or org (e.g. appsparrow)" form={form} set={set} />
+          <SettingsField k="githubRepo"    label="GitHub Repo"     placeholder="hashtagwebpage"  help="The repo CF Pages deploys from (e.g. hashtagwebpage)" form={form} set={set} />
+          <SettingsField k="githubToken"   label="GitHub Token"    placeholder="ghp_xxxx..."     type="password" help="Personal Access Token with Contents:Write scope — github.com/settings/tokens" form={form} set={set} />
         </div>
 
         {/* Manifest */}
@@ -1821,8 +1826,8 @@ function SettingsView({ settings, onSave, addToast }) {
         <h2 className="text-base font-semibold text-white mb-1">🗄️ Supabase (Optional)</h2>
         <p className="text-xs text-slate-500 mb-4">Sync leads across devices. Works with local or cloud Supabase.</p>
         <div className="space-y-3">
-          <F k="supabaseUrl" label="Supabase URL"      placeholder="http://localhost:54321" help="Local: http://localhost:54321 · Cloud: https://xyz.supabase.co" />
-          <F k="supabaseKey" label="Anon Key (optional)" placeholder="eyJ..."  type="password" help="Leave blank for local PostgREST with no JWT secret" />
+          <SettingsField k="supabaseUrl" label="Supabase URL"      placeholder="http://localhost:54321" help="Local: http://localhost:54321 · Cloud: https://xyz.supabase.co" form={form} set={set} />
+          <SettingsField k="supabaseKey" label="Anon Key (optional)" placeholder="eyJ..."  type="password" help="Leave blank for local PostgREST with no JWT secret" form={form} set={set} />
         </div>
         <div className="mt-3 bg-slate-900 rounded-lg p-3 text-xs text-slate-500">
           <span className="text-slate-400 font-medium">After changing JWT settings, run: </span>
@@ -1841,15 +1846,15 @@ function SettingsView({ settings, onSave, addToast }) {
           <a href="https://resend.com" target="_blank" rel="noopener" className="text-blue-400 hover:underline">resend.com</a> — 100 free emails/day
         </p>
         <div className="space-y-3">
-          <F k="resendApiKey" label="Resend API Key" placeholder="re_..." type="password" />
-          <F k="fromEmail"    label="From Email"     placeholder="contact@hashtagwebpage.com" />
+          <SettingsField k="resendApiKey" label="Resend API Key" placeholder="re_..." type="password" form={form} set={set} />
+          <SettingsField k="fromEmail"    label="From Email"     placeholder="contact@hashtagwebpage.com" form={form} set={set} />
         </div>
       </div>
 
       {/* n8n */}
       <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
         <h2 className="text-base font-semibold text-white mb-4">🔄 n8n Automation</h2>
-        <F k="n8nWebhookUrl" label="n8n Webhook URL" placeholder="http://localhost:5678/webhook/hashtagwebpage" />
+        <SettingsField k="n8nWebhookUrl" label="n8n Webhook URL" placeholder="http://localhost:5678/webhook/hashtagwebpage" form={form} set={set} />
       </div>
 
       {/* Site Visibility */}
@@ -1978,6 +1983,27 @@ function SettingsView({ settings, onSave, addToast }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// LOGIN FIELD — defined at module level so React never remounts it
+// ─────────────────────────────────────────────────────────────
+function LoginField({ label, value, onChange, type, placeholder }) {
+  return (
+    <div style={{ marginBottom: "14px" }}>
+      <label style={{ display:"block", fontSize:"12px", fontWeight:600, color:"#94a3b8", marginBottom:"6px", letterSpacing:".03em" }}>{label}</label>
+      <input
+        type={type || "text"} value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} autoComplete="off"
+        style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:"8px",
+          padding:"10px 14px", fontSize:"14px", color:"#f1f5f9", outline:"none", fontFamily:"inherit",
+          boxSizing:"border-box" }}
+        onFocus={e => e.target.style.borderColor="#6366f1"}
+        onBlur={e  => e.target.style.borderColor="#334155"}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // LOGIN SCREEN
 // ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
@@ -2005,21 +2031,6 @@ function LoginScreen({ onLogin }) {
     } finally { setLoading(false); }
   };
 
-  const F = ({ label, value, onChange, type = "text", placeholder }) => (
-    <div style={{ marginBottom: "14px" }}>
-      <label style={{ display:"block", fontSize:"12px", fontWeight:600, color:"#94a3b8", marginBottom:"6px", letterSpacing:".03em" }}>{label}</label>
-      <input
-        type={type} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} autoComplete="off"
-        style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:"8px",
-          padding:"10px 14px", fontSize:"14px", color:"#f1f5f9", outline:"none", fontFamily:"inherit",
-          boxSizing:"border-box" }}
-        onFocus={e => e.target.style.borderColor="#6366f1"}
-        onBlur={e  => e.target.style.borderColor="#334155"}
-      />
-    </div>
-  );
-
   return (
     <div style={{ minHeight:"100vh", background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", fontFamily:"'Inter',system-ui,sans-serif" }}>
       <div style={{ width:"100%", maxWidth:"420px" }}>
@@ -2037,13 +2048,13 @@ function LoginScreen({ onLogin }) {
           <p style={{ fontSize:"13px", color:"#64748b", marginBottom:"24px", marginTop:"4px" }}>Admin access only</p>
 
           {(!savedSettings.supabaseUrl) && <>
-            <F label="SUPABASE URL"     value={sbUrl}  onChange={setSbUrl}  placeholder="https://xxxx.supabase.co" />
-            <F label="SUPABASE ANON KEY" value={sbKey} onChange={setSbKey}  placeholder="eyJhbGci..." type="password" />
+            <LoginField label="SUPABASE URL"      value={sbUrl}  onChange={setSbUrl}  placeholder="https://xxxx.supabase.co" />
+            <LoginField label="SUPABASE ANON KEY" value={sbKey}  onChange={setSbKey}  placeholder="eyJhbGci..." type="password" />
             <div style={{ borderTop:"1px solid #334155", margin:"16px 0" }} />
           </>}
 
-          <F label="EMAIL"    value={email} onChange={setEmail} placeholder="admin@hashtagwebpage.com" type="email" />
-          <F label="PASSWORD" value={pass}  onChange={setPass}  placeholder="••••••••" type="password" />
+          <LoginField label="EMAIL"    value={email} onChange={setEmail} placeholder="admin@hashtagwebpage.com" type="email" />
+          <LoginField label="PASSWORD" value={pass}  onChange={setPass}  placeholder="••••••••" type="password" />
 
           {error && (
             <div style={{ background:"#7f1d1d22", border:"1px solid #ef4444", color:"#fca5a5", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", marginBottom:"16px" }}>
