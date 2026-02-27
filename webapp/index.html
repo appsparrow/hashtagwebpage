@@ -287,6 +287,47 @@ function slugify(name, city) {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+// ── GitHub API deploy (browser-native, no server needed) ─────────────────
+async function deployViaGitHub(slug, html, settings) {
+  const { githubOwner, githubRepo, githubToken, cfPagesDomain } = settings;
+  const filePath = `webapp/sites/${slug}/index.html`;
+  const apiUrl   = `https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${filePath}`;
+  const headers  = {
+    "Authorization": `Bearer ${githubToken}`,
+    "Accept":        "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "Content-Type":  "application/json"
+  };
+
+  // Get existing file SHA (required if updating an existing file)
+  let sha = null;
+  try {
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.ok) { const existing = await getRes.json(); sha = existing.sha; }
+  } catch (_) {}
+
+  // Base64-encode the HTML (btoa with UTF-8 support)
+  const content = btoa(unescape(encodeURIComponent(html)));
+
+  const putRes = await fetch(apiUrl, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({
+      message: `Deploy: ${slug}`,
+      content,
+      ...(sha ? { sha } : {})
+    })
+  });
+
+  if (!putRes.ok) {
+    const err = await putRes.json().catch(() => ({}));
+    throw new Error(err.message || `GitHub API error ${putRes.status}`);
+  }
+
+  const domain = (cfPagesDomain || "hashtagwebpage.pages.dev").replace(/^https?:\/\//, "");
+  return `https://${domain}/${slug}`;
+}
+
 function generateSiteHTML(lead, opts = {}) {
   const { name, category, phone = "Call us for a quote", address, city, rating, reviewCount: reviews } = lead;
   const { siteVisible = true, siteUrl = "" } = opts;
@@ -851,15 +892,17 @@ function SendPreviewModal({ lead, settings, onClose, onSent }) {
     if (!email) return;
     setSending(true);
     try {
-      const res = await fetch("/api/send-email", {
+      const edgeFnUrl = (settings.supabaseUrl || "").replace(/\/$/, "") + "/functions/v1/send-email";
+      const res = await fetch(edgeFnUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type":  "application/json",
+          "Authorization": `Bearer ${settings.supabaseKey || ""}`
+        },
         body: JSON.stringify({
           to: email,
           businessName: lead.name,
           previewUrl,
-          fromEmail:   settings.fromEmail,
-          resendKey:   settings.resendApiKey,
           hookMessage: hook,
           category:    lead.category,
           city:        lead.city,
@@ -1396,22 +1439,49 @@ function FindLeadsView({ leads, onAddLeads }) {
     if (!city.trim()) { setError("Please enter a city"); return; }
     const googleApiKey = (store.getSettings().googleApiKey || "").trim();
     if (!googleApiKey) {
-      setError("No Google API key set. Go to Settings → Google Places API and add your key, then restart the server.");
+      setError("No Google API key set. Go to Settings → Google Places API and add your key.");
       return;
     }
     setLoading(true); setError(null); setResults([]);
     try {
-      const res = await fetch("/api/search", {
+      const fieldMask = [
+        "places.id","places.displayName","places.formattedAddress",
+        "places.nationalPhoneNumber","places.rating","places.userRatingCount",
+        "places.websiteUri","places.googleMapsUri","places.primaryType"
+      ].join(",");
+
+      const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: city.trim(), category, googleApiKey })
+        headers: {
+          "Content-Type":    "application/json",
+          "X-Goog-Api-Key":  googleApiKey,
+          "X-Goog-FieldMask": fieldMask
+        },
+        body: JSON.stringify({ textQuery: `${category} in ${city.trim()}`, maxResultCount: 20 })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      if (!data.results?.length) {
-        const detail = data.googleError ? ` Google says: "${data.googleError}"` : "";
-        setError(`No businesses without websites found here.${detail} Try a different city or category.`);
-      } else setResults(data.results);
+      if (!res.ok) throw new Error(data.error?.message || `Places API error ${res.status}`);
+
+      const places = (data.places || []).filter(p => !p.websiteUri);
+      if (!places.length) {
+        setError(`No businesses without websites found in ${city.trim()} for ${category}. Try a different city.`);
+      } else {
+        setResults(places.map(p => ({
+          id: p.id,
+          name: p.displayName?.text || "Unknown Business",
+          category, city: city.trim(),
+          phone: p.nationalPhoneNumber || null,
+          address: p.formattedAddress || "",
+          rating: p.rating || 0,
+          reviewCount: p.userRatingCount || 0,
+          hasWebsite: false,
+          stage: "new",
+          mapsUrl: p.googleMapsUri || "#",
+          foundAt: Date.now(),
+          sentAt: null, followUpAt: null, convertedAt: null,
+          previewUrl: null, email: null, notes: ""
+        })));
+      }
     } catch (e) {
       setError(`Search failed: ${e.message}`);
     } finally { setLoading(false); }
@@ -1560,6 +1630,9 @@ function SettingsView({ settings, onSave, addToast }) {
     cfAccountId:   settings.cfAccountId   || "",
     cfApiToken:    settings.cfApiToken    || "",
     cfProjectName: settings.cfProjectName || CF_DEFAULT_PROJECT,
+    githubOwner:   settings.githubOwner   || "",
+    githubRepo:    settings.githubRepo    || "",
+    githubToken:   settings.githubToken   || "",
     resendApiKey:  settings.resendApiKey  || "",
     fromEmail:     settings.fromEmail     || "hello@hashtagwebpage.co",
     n8nWebhookUrl: settings.n8nWebhookUrl || "",
@@ -1654,9 +1727,10 @@ function SettingsView({ settings, onSave, addToast }) {
         </p>
         <div className="space-y-3">
           <F k="cfPagesDomain" label="Pages Domain" placeholder="hashtagwebpage.com" help="Your CF Pages domain — hashtagwebpage.com or hashtagwebpage.pages.dev" />
-          <F k="cfAccountId"   label="Account ID"   placeholder="abc123def..."       type="password" help="Cloudflare Dashboard → right sidebar (needed for delete only)" />
-          <F k="cfApiToken"    label="API Token"    placeholder="your-api-token"     type="password" help="cloudflare.com → Profile → API Tokens → Pages:Edit" />
-          <F k="cfProjectName" label="Project Name" placeholder="hashtagwebpage"     help="CF Pages project name (must match the GitHub-connected project)" />
+          <F k="cfProjectName" label="CF Project Name" placeholder="hashtagwebpage"  help="CF Pages project name (same as GitHub repo CF Pages is connected to)" />
+          <F k="githubOwner"   label="GitHub Owner"    placeholder="yourusername"    help="Your GitHub username or org (e.g. appsparrow)" />
+          <F k="githubRepo"    label="GitHub Repo"     placeholder="hashtagwebpage"  help="The repo CF Pages deploys from (e.g. hashtagwebpage)" />
+          <F k="githubToken"   label="GitHub Token"    placeholder="ghp_xxxx..."     type="password" help="Personal Access Token with Contents:Write scope — github.com/settings/tokens" />
         </div>
 
         {/* Manifest */}
@@ -1936,8 +2010,8 @@ function App() {
     if (action === "generate") {
       const lead = leads.find(l => l.id === id);
       if (!lead) return;
-      if (!settings.cfAccountId || !settings.cfApiToken) {
-        addToast("⚠️ Add Cloudflare Account ID + API Token in Settings first", "error");
+      if (!settings.githubToken || !settings.githubOwner || !settings.githubRepo) {
+        addToast("⚠️ Add GitHub Owner, Repo and Token in Settings first", "error");
         return;
       }
       const slug           = slugify(lead.name, lead.city);
@@ -1947,24 +2021,18 @@ function App() {
 
       setDeploying(prev => new Set([...prev, id]));
       try {
-        const res = await fetch("/api/deploy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, html, cfPagesDomain: settings.cfPagesDomain || "hashtagwebpage.pages.dev" })
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || "Deploy failed");
+        const productionUrl = await deployViaGitHub(slug, html, settings);
 
         const newSettings = { ...settings };
         saveSettings(newSettings);
 
-        const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: data.productionUrl } : l);
+        const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: productionUrl } : l);
         saveLeads(newLeads);
 
         const updated = newLeads.find(l => l.id === id);
         if (settings.supabaseUrl && updated) dbSaveLead(updated, newSettings).catch(() => {});
 
-        addToast(`✅ Site live → ${data.productionUrl}`);
+        addToast(`✅ Pushed to GitHub → ${productionUrl} (CF Pages deploying…)`);
       } catch (e) {
         addToast(`Deploy failed: ${e.message}`, "error");
       } finally {
