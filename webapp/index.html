@@ -228,6 +228,58 @@ async function loadAllFromSupabase(settings) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// CATEGORY THEMES (shared between site generator + send preview)
+// ─────────────────────────────────────────────────────────────
+const CATEGORY_THEMES = {
+  "Plumber":          { pri:"#1d4ed8", sec:"#1e3a8a", acc:"#60a5fa", icon:"🔧" },
+  "Electrician":      { pri:"#7c3aed", sec:"#5b21b6", acc:"#a78bfa", icon:"⚡" },
+  "Landscaping":      { pri:"#15803d", sec:"#166534", acc:"#4ade80", icon:"🌿" },
+  "House Cleaning":   { pri:"#0369a1", sec:"#075985", acc:"#38bdf8", icon:"✨" },
+  "Roofing":          { pri:"#b45309", sec:"#92400e", acc:"#fbbf24", icon:"🏠" },
+  "HVAC":             { pri:"#b91c1c", sec:"#991b1b", acc:"#f87171", icon:"❄️" },
+  "Painter":          { pri:"#0f766e", sec:"#0d6b63", acc:"#2dd4bf", icon:"🎨" },
+  "Handyman":         { pri:"#6d28d9", sec:"#5b21b6", acc:"#a78bfa", icon:"🔨" },
+  "Auto Repair":      { pri:"#374151", sec:"#1f2937", acc:"#9ca3af", icon:"🚗" },
+  "Barber":           { pri:"#9a3412", sec:"#7c2d12", acc:"#fb923c", icon:"✂️" },
+  "Nail Salon":       { pri:"#9d174d", sec:"#831843", acc:"#f472b6", icon:"💅" },
+  "Pet Grooming":     { pri:"#0e7490", sec:"#0c6278", acc:"#22d3ee", icon:"🐾" },
+  "Tree Service":     { pri:"#166534", sec:"#14532d", acc:"#4ade80", icon:"🌳" },
+  "Pest Control":     { pri:"#9a3412", sec:"#7c2d12", acc:"#fb923c", icon:"🛡️" },
+  "Pool Service":     { pri:"#0369a1", sec:"#075985", acc:"#38bdf8", icon:"🏊" },
+  "Pressure Washing": { pri:"#1d4ed8", sec:"#1e3a8a", acc:"#60a5fa", icon:"💧" },
+};
+function getCategoryTheme(category) {
+  return CATEGORY_THEMES[category] || { pri:"#4f46e5", sec:"#3730a3", acc:"#818cf8", icon:"⭐" };
+}
+
+// ─────────────────────────────────────────────────────────────
+// HOOK MESSAGES — auto-generated per category, editable by user
+// ─────────────────────────────────────────────────────────────
+const HOOK_MESSAGES = {
+  "Plumber":          "Hi {name}! We noticed you don't have a website yet — so we built one for you, for free. Customers in {city} are searching for plumbers online right now and your competitors are getting those calls. Here's your live preview:",
+  "Electrician":      "Hi {name}! We put together a free website for you. Homeowners in {city} search for electricians online first before calling — this gets you found and builds trust instantly. Take a look:",
+  "Landscaping":      "Hi {name}! We built you a free website. Spring is coming and people in {city} are already searching for landscapers online. This puts you front and center when they do:",
+  "House Cleaning":   "Hi {name}! We noticed you don't have a website. We built one for free — families in {city} search for cleaners online before calling anyone. Here's your live preview:",
+  "Roofing":          "Hi {name}! We put together a free website for you. Storm season brings a wave of urgent searches for roofers in {city} — this puts you in front of homeowners when they need help most:",
+  "HVAC":             "Hi {name}! We built you a free website. When AC breaks in {city}, people search online immediately for someone they can trust. This gets you found first:",
+  "Painter":          "Hi {name}! We built you a free website. Homeowners in {city} look for painters online before asking neighbors — this is your chance to make a great first impression:",
+  "Handyman":         "Hi {name}! We noticed you don't have a website. We built one for free — people in {city} search for handymen for everything from leaky faucets to deck repairs:",
+  "Auto Repair":      "Hi {name}! We built you a free website. Car trouble is urgent — people in {city} search immediately for a shop they can trust. This puts you right there when they need you:",
+  "Barber":           "Hi {name}! We put together a free website for you. Clients in {city} look for barbers online and book with whoever looks most professional. Here's yours:",
+  "Nail Salon":       "Hi {name}! We built you a free website. People in {city} search for nail salons online before deciding where to go — this makes you the easy choice:",
+  "Pet Grooming":     "Hi {name}! We put together a free website for you. Pet owners in {city} always research groomers online before trusting them with their dogs. Here's your preview:",
+  "Tree Service":     "Hi {name}! We built you a free website. After any storm, homeowners in {city} search urgently for tree services — this gets you found first when it matters most:",
+  "Pest Control":     "Hi {name}! We put together a free website for you. Pest problems feel urgent — people in {city} search for solutions immediately and go with whoever they find first:",
+  "Pool Service":     "Hi {name}! We built you a free website. Pool owners in {city} search for reliable service before the season starts — this puts you at the top of their list:",
+  "Pressure Washing": "Hi {name}! We built you a free website. Every spring, homeowners in {city} search for pressure washing services — this gets you in front of them at exactly the right time:",
+};
+function getHookMessage(lead) {
+  const tpl = HOOK_MESSAGES[lead.category] ||
+    "Hi {name}! We noticed you don't have a website, so we built one for you — for free. Take a look at your live preview:";
+  return tpl.replace(/{name}/g, lead.name).replace(/{city}/g, lead.city);
+}
+
+// ─────────────────────────────────────────────────────────────
 // SLUG + SITE GENERATION
 // ─────────────────────────────────────────────────────────────
 function slugify(name, city) {
@@ -548,7 +600,7 @@ function ToastContainer({ toasts }) {
 // ─────────────────────────────────────────────────────────────
 // LEAD CARD
 // ─────────────────────────────────────────────────────────────
-function LeadCard({ lead, onAction, onSelect, deploying }) {
+function LeadCard({ lead, onAction, onSelect, onSendPreview, deploying }) {
   const daysAgo = Math.floor((Date.now() - lead.foundAt) / 86400000);
   const followUpDue = lead.followUpAt && lead.followUpAt < Date.now();
   const isDeploying = deploying && deploying.has(lead.id);
@@ -593,9 +645,9 @@ function LeadCard({ lead, onAction, onSelect, deploying }) {
           </button>
         )}
         {lead.stage === "site_generated" && (
-          <button onClick={() => onAction(lead.id, "send_link")}
+          <button onClick={() => onSendPreview(lead)}
             className="flex-1 text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition-colors">
-            📧 Send Preview
+            📤 Send Preview
           </button>
         )}
         {(lead.stage === "link_sent" || lead.stage === "following_up") && (
@@ -618,7 +670,7 @@ function LeadCard({ lead, onAction, onSelect, deploying }) {
 // ─────────────────────────────────────────────────────────────
 // LEAD DETAIL MODAL
 // ─────────────────────────────────────────────────────────────
-function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, deploying }) {
+function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, onSendPreview, deploying }) {
   const [notes, setNotes] = React.useState(lead.notes || "");
   const [email, setEmail] = React.useState(lead.email || "");
   const isDeploying = deploying && deploying.has(lead.id);
@@ -716,13 +768,185 @@ function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, deploying }) 
             <>
               <button onClick={() => { save(); onPreview(lead.id); }}
                 className="py-2 px-3 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors">🔍 Preview</button>
-              <button onClick={() => { save(); onAction(lead.id, "send_link"); onClose(); }}
-                className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors">📧 Send Link</button>
+              <button onClick={() => { save(); onClose(); onSendPreview(lead); }}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors">📤 Send Preview</button>
             </>
           )}
           {(lead.stage === "link_sent" || lead.stage === "following_up") && (
             <button onClick={() => { save(); onAction(lead.id, "convert"); onClose(); }}
               className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg transition-colors">✅ Mark as Customer</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SEND PREVIEW MODAL — thumbnail card + hook message + email send
+// ─────────────────────────────────────────────────────────────
+function SendPreviewModal({ lead, settings, onClose, onSent }) {
+  const theme = getCategoryTheme(lead.category);
+  const [email, setEmail]       = React.useState(lead.email || "");
+  const [hook, setHook]         = React.useState(getHookMessage(lead));
+  const [sending, setSending]   = React.useState(false);
+  const [sent, setSent]         = React.useState(false);
+  const [copied, setCopied]     = React.useState(false);
+  const previewUrl = lead.previewUrl || "";
+  const hasRating  = lead.rating > 0;
+  const starsStr   = hasRating ? "★".repeat(Math.round(lead.rating)) + "☆".repeat(5 - Math.round(lead.rating)) : "";
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(previewUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const sendEmail = async () => {
+    if (!email) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: email,
+          businessName: lead.name,
+          previewUrl,
+          fromEmail:   settings.fromEmail,
+          resendKey:   settings.resendApiKey,
+          hookMessage: hook,
+          category:    lead.category,
+          city:        lead.city,
+          phone:       lead.phone || "",
+          rating:      lead.rating || 0,
+          reviews:     lead.reviewCount || 0,
+          themePri:    theme.pri,
+          themeSec:    theme.sec,
+          themeAcc:    theme.acc,
+          themeIcon:   theme.icon,
+        })
+      });
+      const data = await res.json();
+      if (data.ok || data.id) { setSent(true); onSent(lead.id, email); }
+      else throw new Error(data.message || data.error || "Send failed");
+    } catch (e) {
+      alert("Send failed: " + e.message);
+    } finally { setSending(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl fade-in flex flex-col max-h-[92vh]" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-white">📤 Send Preview</h2>
+            <p className="text-xs text-slate-400 mt-0.5">{lead.name} · {lead.category} · {lead.city}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+          {/* THUMBNAIL CARD */}
+          <div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Website Preview</div>
+            <div className="rounded-xl overflow-hidden border border-slate-700 shadow-xl">
+              {/* Browser chrome mock */}
+              <div className="bg-slate-800 px-4 py-2.5 flex items-center gap-2 border-b border-slate-700">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/70" />
+                </div>
+                <div className="flex-1 bg-slate-700 rounded-md px-3 py-1 text-xs text-slate-400 font-mono truncate ml-2">
+                  {previewUrl || "https://hashtagwebpage.com/your-business"}
+                </div>
+              </div>
+              {/* Hero thumbnail */}
+              <div style={{ background: `linear-gradient(135deg, ${theme.pri} 0%, ${theme.sec} 100%)` }}
+                className="px-8 py-10 text-white text-center relative overflow-hidden">
+                {/* Radial glow */}
+                <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 70% 60% at 25% 25%, rgba(255,255,255,.13) 0%, transparent 60%)", pointerEvents:"none" }} />
+                <div className="relative z-10">
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,.18)", border:"1px solid rgba(255,255,255,.35)", padding:"4px 14px", borderRadius:100, fontSize:".72rem", fontWeight:700, marginBottom:16, letterSpacing:".06em", textTransform:"uppercase" }}>
+                    {theme.icon}&nbsp;&nbsp;{lead.category}
+                  </div>
+                  <div className="text-3xl font-black mb-2 tracking-tight" style={{ letterSpacing:"-.03em" }}>{lead.name}</div>
+                  <div className="text-sm opacity-80 mb-4">{lead.city}</div>
+                  {hasRating && (
+                    <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,.15)", border:"1px solid rgba(255,255,255,.25)", padding:"6px 16px", borderRadius:100, fontSize:".85rem", marginBottom:16 }}>
+                      <span style={{ color:"#fbbf24", letterSpacing:2 }}>{starsStr}</span>
+                      <strong>{lead.rating.toFixed(1)}</strong>
+                      <span style={{ opacity:.75 }}>· {lead.reviewCount} reviews</span>
+                    </div>
+                  )}
+                  <div className="flex gap-2 justify-center flex-wrap mt-2">
+                    <div style={{ background:"#fff", color:theme.pri, padding:"8px 20px", borderRadius:100, fontWeight:800, fontSize:".85rem" }}>📞 {lead.phone || "Call Now"}</div>
+                    <div style={{ background:"transparent", color:"#fff", padding:"8px 20px", borderRadius:100, fontWeight:700, fontSize:".85rem", border:"2px solid rgba(255,255,255,.5)" }}>Get Free Quote →</div>
+                  </div>
+                </div>
+              </div>
+              {/* Services strip */}
+              <div className="bg-slate-800 px-6 py-3 flex gap-4 flex-wrap justify-center">
+                {["Licensed & Insured","⭐ Highly Rated","Free Estimates","Fast Response"].map(t => (
+                  <span key={t} className="text-xs text-slate-300 bg-slate-700 px-3 py-1 rounded-full">{t}</span>
+                ))}
+              </div>
+            </div>
+            {previewUrl && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-slate-500 font-mono truncate flex-1">{previewUrl}</span>
+                <button onClick={copyLink} className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg transition-colors flex-shrink-0">
+                  {copied ? "✓ Copied" : "Copy Link"}
+                </button>
+                <a href={previewUrl} target="_blank" rel="noopener" className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded-lg transition-colors flex-shrink-0">↗ Open</a>
+              </div>
+            )}
+          </div>
+
+          {/* HOOK MESSAGE */}
+          <div>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+              Message <span className="text-slate-600 normal-case font-normal">(editable)</span>
+            </label>
+            <textarea
+              value={hook} onChange={e => setHook(e.target.value)} rows={5}
+              className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
+            />
+          </div>
+
+          {/* EMAIL INPUT */}
+          <div>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Send to Email</label>
+            <div className="flex gap-2">
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="owner@business.com"
+                className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            {!settings.resendApiKey && (
+              <p className="text-xs text-amber-400 mt-1.5">⚠️ No Resend key in Settings — email won't actually send but will be logged to console.</p>
+            )}
+          </div>
+
+        </div>
+
+        {/* Footer actions */}
+        <div className="px-6 py-4 border-t border-slate-700 flex gap-3 flex-shrink-0">
+          <button onClick={onClose} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors">Cancel</button>
+          <button onClick={copyLink}
+            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-xl transition-colors">
+            {copied ? "✓ Link Copied!" : "📋 Copy Link"}
+          </button>
+          {sent ? (
+            <div className="flex-1 py-2.5 bg-emerald-700 text-white text-sm rounded-xl text-center font-semibold">✅ Sent!</div>
+          ) : (
+            <button onClick={sendEmail} disabled={sending || !email}
+              className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded-xl transition-colors font-semibold">
+              {sending ? "⏳ Sending..." : "📧 Send Email"}
+            </button>
           )}
         </div>
       </div>
@@ -1179,7 +1403,7 @@ function FindLeadsView({ leads, onAddLeads }) {
 // ─────────────────────────────────────────────────────────────
 // PIPELINE VIEW
 // ─────────────────────────────────────────────────────────────
-function PipelineView({ leads, onAction, onSelect, deploying }) {
+function PipelineView({ leads, onAction, onSelect, onSendPreview, deploying }) {
   const stageOrder = ["new","site_generated","link_sent","following_up","customer","archived"];
   return (
     <div className="fade-in">
@@ -1199,7 +1423,7 @@ function PipelineView({ leads, onAction, onSelect, deploying }) {
               </div>
               <div className="space-y-3 min-h-[200px]">
                 {stageLeads.map(lead => (
-                  <LeadCard key={lead.id} lead={lead} onAction={onAction} onSelect={onSelect} deploying={deploying} />
+                  <LeadCard key={lead.id} lead={lead} onAction={onAction} onSelect={onSelect} onSendPreview={onSendPreview} deploying={deploying} />
                 ))}
                 {stageLeads.length === 0 && (
                   <div className={`border-2 border-dashed ${s.border} rounded-xl h-24 flex items-center justify-center`}>
@@ -1500,9 +1724,10 @@ function App() {
   const [view, setView]               = React.useState("dashboard");
   const [leads, setLeads]             = React.useState(() => store.getLeads());
   const [settings, setSettings]       = React.useState(() => store.getSettings());
-  const [selectedLead, setSelectedLead] = React.useState(null);
-  const [previewLead, setPreviewLead] = React.useState(null);
-  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [selectedLead, setSelectedLead]       = React.useState(null);
+  const [previewLead, setPreviewLead]         = React.useState(null);
+  const [sendPreviewLead, setSendPreviewLead] = React.useState(null);
+  const [sidebarOpen, setSidebarOpen]         = React.useState(true);
   const [deploying, setDeploying]     = React.useState(new Set());
   const [toasts, setToasts]           = React.useState([]);
   const [syncStatus, setSyncStatus]   = React.useState("idle"); // idle | syncing | ok | error
@@ -1617,13 +1842,6 @@ function App() {
       if (l.id !== id) return l;
       if (action === "send_link") {
         const updated = { ...l, stage: "link_sent", sentAt: now, followUpAt: now + 7 * 86400000 };
-        // Send email if configured
-        if (settings.resendApiKey && updated.email) {
-          fetch("/api/send-email", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ to: updated.email, businessName: updated.name, previewUrl: updated.previewUrl, fromEmail: settings.fromEmail, resendKey: settings.resendApiKey })
-          }).then(() => addToast(`📧 Email sent to ${updated.email}`)).catch(() => {});
-        }
         // Trigger n8n
         if (settings.n8nWebhookUrl) {
           fetch("/api/n8n-trigger", {
@@ -1667,6 +1885,13 @@ function App() {
   const handlePreview = id => {
     const lead = leads.find(l => l.id === id);
     if (lead) setPreviewLead(lead);
+  };
+
+  // Called by SendPreviewModal after email is actually sent
+  const handleSendPreviewSent = (id, emailAddr) => {
+    addToast(`📧 Preview sent to ${emailAddr}`);
+    handleAction(id, "send_link");
+    setSendPreviewLead(null);
   };
 
   const navItems = [
@@ -1723,7 +1948,7 @@ function App() {
       <main className="flex-1 overflow-auto p-6 min-w-0">
         {view === "dashboard" && <DashboardView leads={leads} settings={settings} addToast={addToast} onSync={() => syncFromSupabase(settings)} syncStatus={syncStatus} />}
         {view === "find"      && <FindLeadsView leads={leads} onAddLeads={handleAddLeads} />}
-        {view === "pipeline"  && <PipelineView  leads={leads} onAction={handleAction} onSelect={setSelectedLead} deploying={deploying} />}
+        {view === "pipeline"  && <PipelineView  leads={leads} onAction={handleAction} onSelect={setSelectedLead} onSendPreview={setSendPreviewLead} deploying={deploying} />}
         {view === "settings"  && <SettingsView  settings={settings} onSave={saveSettings} addToast={addToast} />}
       </main>
 
@@ -1735,7 +1960,18 @@ function App() {
           onAction={handleAction}
           onUpdate={handleUpdate}
           onPreview={handlePreview}
+          onSendPreview={setSendPreviewLead}
           deploying={deploying}
+        />
+      )}
+
+      {/* Send Preview Modal */}
+      {sendPreviewLead && (
+        <SendPreviewModal
+          lead={leads.find(l => l.id === sendPreviewLead.id) || sendPreviewLead}
+          settings={settings}
+          onClose={() => setSendPreviewLead(null)}
+          onSent={handleSendPreviewSent}
         />
       )}
 
