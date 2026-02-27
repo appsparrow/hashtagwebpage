@@ -113,6 +113,53 @@ const store = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// AUTH HELPERS  (Supabase Auth, no extra SDK needed)
+// ─────────────────────────────────────────────────────────────
+const AUTH_KEY = "hwp_auth_session";
+
+const auth = {
+  getSession() {
+    try {
+      const s = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+      if (!s || !s.access_token) return null;
+      // Treat as valid if expires_at is in the future (or not set)
+      if (s.expires_at && Date.now() > s.expires_at) return null;
+      return s;
+    } catch { return null; }
+  },
+  setSession(data) {
+    localStorage.setItem(AUTH_KEY, JSON.stringify({
+      access_token:  data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at:    Date.now() + ((data.expires_in || 3600) * 1000),
+      user:          data.user,
+    }));
+  },
+  clearSession() { localStorage.removeItem(AUTH_KEY); },
+  async signIn(supabaseUrl, anonKey, email, password) {
+    const res = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { "apikey": anonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.message || "Login failed");
+    auth.setSession(data);
+    return data;
+  },
+  async signOut(supabaseUrl, anonKey) {
+    const session = auth.getSession();
+    if (session) {
+      await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/logout`, {
+        method: "POST",
+        headers: { "apikey": anonKey, "Authorization": `Bearer ${session.access_token}` },
+      }).catch(() => {});
+    }
+    auth.clearSession();
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
 // SUPABASE HELPERS
 // ─────────────────────────────────────────────────────────────
 async function sbFetch(supabaseUrl, key, path, method = "GET", body = null, extraHeaders = {}) {
@@ -121,7 +168,11 @@ async function sbFetch(supabaseUrl, key, path, method = "GET", body = null, extr
     "Accept": "application/json",
     ...extraHeaders
   };
-  if (key) { headers["apikey"] = key; headers["Authorization"] = `Bearer ${key}`; }
+  // Use authenticated JWT if available (for RLS), fall back to anon key
+  const session = auth.getSession();
+  const bearerToken = session?.access_token || key;
+  if (key) { headers["apikey"] = key; }
+  if (bearerToken) { headers["Authorization"] = `Bearer ${bearerToken}`; }
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
   // Supabase cloud needs /rest/v1 prefix; local PostgREST serves at root /
@@ -1927,9 +1978,100 @@ function SettingsView({ settings, onSave, addToast }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// LOGIN SCREEN
+// ─────────────────────────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const savedSettings = store.getSettings();
+  const [sbUrl,  setSbUrl]  = React.useState(savedSettings.supabaseUrl  || "");
+  const [sbKey,  setSbKey]  = React.useState(savedSettings.supabaseKey  || "");
+  const [email,  setEmail]  = React.useState("");
+  const [pass,   setPass]   = React.useState("");
+  const [error,  setError]  = React.useState("");
+  const [loading,setLoading]= React.useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!sbUrl || !sbKey) { setError("Enter your Supabase URL and anon key first."); return; }
+    if (!email || !pass)  { setError("Enter your email and password."); return; }
+    setError(""); setLoading(true);
+    try {
+      await auth.signIn(sbUrl.trim(), sbKey.trim(), email.trim(), pass);
+      // Persist Supabase config if it wasn't saved yet
+      const s = store.getSettings();
+      store.saveSettings({ ...s, supabaseUrl: sbUrl.trim(), supabaseKey: sbKey.trim() });
+      onLogin();
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally { setLoading(false); }
+  };
+
+  const F = ({ label, value, onChange, type = "text", placeholder }) => (
+    <div style={{ marginBottom: "14px" }}>
+      <label style={{ display:"block", fontSize:"12px", fontWeight:600, color:"#94a3b8", marginBottom:"6px", letterSpacing:".03em" }}>{label}</label>
+      <input
+        type={type} value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} autoComplete="off"
+        style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:"8px",
+          padding:"10px 14px", fontSize:"14px", color:"#f1f5f9", outline:"none", fontFamily:"inherit",
+          boxSizing:"border-box" }}
+        onFocus={e => e.target.style.borderColor="#6366f1"}
+        onBlur={e  => e.target.style.borderColor="#334155"}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", fontFamily:"'Inter',system-ui,sans-serif" }}>
+      <div style={{ width:"100%", maxWidth:"420px" }}>
+        {/* Logo */}
+        <div style={{ textAlign:"center", marginBottom:"32px" }}>
+          <div style={{ fontSize:"28px", fontWeight:800, color:"#f1f5f9", letterSpacing:"-.03em" }}>
+            <span style={{ color:"#6366f1" }}>#</span>HashtagWebpage
+          </div>
+          <div style={{ fontSize:"13px", color:"#475569", marginTop:"6px" }}>CRM Admin Panel</div>
+        </div>
+
+        {/* Card */}
+        <form onSubmit={handleLogin} style={{ background:"#1e293b", border:"1px solid #334155", borderRadius:"16px", padding:"32px" }}>
+          <h2 style={{ fontSize:"18px", fontWeight:700, color:"#f1f5f9", marginBottom:"4px", marginTop:0 }}>Sign in</h2>
+          <p style={{ fontSize:"13px", color:"#64748b", marginBottom:"24px", marginTop:"4px" }}>Admin access only</p>
+
+          {(!savedSettings.supabaseUrl) && <>
+            <F label="SUPABASE URL"     value={sbUrl}  onChange={setSbUrl}  placeholder="https://xxxx.supabase.co" />
+            <F label="SUPABASE ANON KEY" value={sbKey} onChange={setSbKey}  placeholder="eyJhbGci..." type="password" />
+            <div style={{ borderTop:"1px solid #334155", margin:"16px 0" }} />
+          </>}
+
+          <F label="EMAIL"    value={email} onChange={setEmail} placeholder="admin@hashtagwebpage.com" type="email" />
+          <F label="PASSWORD" value={pass}  onChange={setPass}  placeholder="••••••••" type="password" />
+
+          {error && (
+            <div style={{ background:"#7f1d1d22", border:"1px solid #ef4444", color:"#fca5a5", borderRadius:"8px", padding:"10px 14px", fontSize:"13px", marginBottom:"16px" }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading}
+            style={{ width:"100%", background: loading ? "#4338ca" : "#6366f1", color:"white", border:"none", borderRadius:"8px",
+              padding:"12px", fontSize:"15px", fontWeight:700, cursor: loading ? "not-allowed" : "pointer",
+              transition:"background .15s", marginTop:"4px" }}>
+            {loading ? "Signing in…" : "Sign in →"}
+          </button>
+        </form>
+
+        <p style={{ textAlign:"center", fontSize:"12px", color:"#334155", marginTop:"20px" }}>
+          First time? Create an admin user in Supabase Dashboard → Authentication → Users
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN APP
 // ─────────────────────────────────────────────────────────────
 function App() {
+  const [authed, setAuthed]           = React.useState(() => !!auth.getSession());
   const [view, setView]               = React.useState("dashboard");
   const [leads, setLeads]             = React.useState(() => store.getLeads());
   const [settings, setSettings]       = React.useState(() => store.getSettings());
@@ -1940,6 +2082,8 @@ function App() {
   const [deploying, setDeploying]     = React.useState(new Set());
   const [toasts, setToasts]           = React.useState([]);
   const [syncStatus, setSyncStatus]   = React.useState("idle"); // idle | syncing | ok | error
+
+  if (!authed) return <LoginScreen onLogin={() => { setSettings(store.getSettings()); setAuthed(true); }} />;
 
   const addToast = (msg, type = "success") => {
     const id = Date.now() + Math.random();
@@ -2147,6 +2291,21 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Sign Out */}
+        <div className="p-3 border-t border-slate-800/60">
+          <button
+            onClick={async () => {
+              await auth.signOut(settings.supabaseUrl || "", settings.supabaseKey || "");
+              setAuthed(false);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            title="Sign out"
+          >
+            <span>↪</span>
+            {sidebarOpen && <span>Sign out</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
