@@ -287,7 +287,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line
 .nav-cta{background:var(--pri);color:#fff;padding:9px 20px;border-radius:100px;font-size:.875rem;font-weight:700;text-decoration:none;transition:opacity .15s,transform .15s}
 .nav-cta:hover{opacity:.88;transform:translateY(-1px)}
 /* HERO */
-.hero{background:linear-gradient(135deg,var(--pri)dd 0%,var(--sec) 100%),url('${heroImg}') center/cover no-repeat;padding:88px 24px 100px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,${t.pri}cc 0%,${t.sec} 100%),url('${heroImg}') center/cover no-repeat;background-size:auto,cover;background-position:center;padding:88px 24px 100px;text-align:center;color:#fff;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 20%,rgba(255,255,255,.14) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 80% 85%,rgba(0,0,0,.2) 0%,transparent 55%);pointer-events:none}
 .hero-inner{position:relative;z-index:1;max-width:720px;margin:0 auto}
 .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:6px 16px;border-radius:100px;font-size:.78rem;font-weight:700;margin-bottom:20px;letter-spacing:.06em;text-transform:uppercase}
@@ -699,6 +699,13 @@ function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, deploying }) 
 
         <div className="p-4 border-t border-slate-700 flex gap-2 flex-wrap">
           <button onClick={save} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors">Save</button>
+          {lead.stage !== "new" && (
+            <button onClick={() => { onAction(lead.id, "reset"); onClose(); }}
+              title="Reset back to New so you can regenerate the site"
+              className="px-3 py-2 bg-slate-700 hover:bg-amber-600/80 text-slate-400 hover:text-white text-sm rounded-lg transition-colors" >
+              ↩ Reset
+            </button>
+          )}
           {lead.stage === "new" && (
             <button disabled={isDeploying} onClick={() => { save(); onAction(lead.id, "generate"); onClose(); }}
               className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-60 text-white text-sm rounded-lg transition-colors">
@@ -1628,6 +1635,7 @@ function App() {
       }
       if (action === "convert") return { ...l, stage: "customer", convertedAt: now, followUpAt: null };
       if (action === "archive") return { ...l, stage: "archived" };
+      if (action === "reset")   return { ...l, stage: "new", previewUrl: null, sentAt: null, followUpAt: null, convertedAt: null };
       return l;
     });
     saveLeads(newLeads);
