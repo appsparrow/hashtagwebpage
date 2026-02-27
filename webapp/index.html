@@ -1752,6 +1752,30 @@ function SettingsView({ settings, onSave, addToast }) {
         <p className="text-xs text-slate-600 mt-3">⚠️ Changing this only affects newly generated sites. Re-generate existing leads to apply.</p>
       </div>
 
+      {/* Published Sites Directory */}
+      <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
+        <h2 className="text-base font-semibold text-white mb-1">🗂️ Published Sites Directory</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          A hidden admin page listing every published site pulled live from Supabase. Not linked anywhere publicly — access it directly.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={`https://${settings.cfPagesDomain || "hashtagwebpage.pages.dev"}/_sites/`}
+            target="_blank" rel="noopener"
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            ↗ Open Sites Directory
+          </a>
+          <button
+            onClick={() => { navigator.clipboard.writeText(`https://${settings.cfPagesDomain || "hashtagwebpage.pages.dev"}/_sites/`); addToast("Link copied!"); }}
+            className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            Copy Link
+          </button>
+        </div>
+        <p className="text-xs text-slate-600 mt-3">First visit prompts for your Supabase URL + anon key (stored in browser only).</p>
+      </div>
+
       {/* Delete Records */}
       <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5">
         <h2 className="text-base font-semibold text-white mb-1">🗑️ Clear Demo Data</h2>

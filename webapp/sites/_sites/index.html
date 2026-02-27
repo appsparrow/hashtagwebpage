@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Published Sites · HashtagWebpage</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* ── Header ── */
+.header{background:#1e293b;border-bottom:1px solid #334155;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.header-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:#f8fafc}
+.header-brand span{color:#6366f1}
+.header-meta{font-size:13px;color:#64748b}
+
+/* ── Config modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px;width:100%;max-width:480px}
+.modal h2{font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:6px}
+.modal p{font-size:14px;color:#94a3b8;margin-bottom:24px;line-height:1.5}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:500;color:#94a3b8;margin-bottom:6px}
+.field input{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 14px;font-size:14px;color:#f1f5f9;outline:none;font-family:inherit}
+.field input:focus{border-color:#6366f1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:#6366f1;color:#fff}
+.btn-primary:hover{background:#4f46e5}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-ghost{background:transparent;color:#64748b;border:1px solid #334155}
+.btn-ghost:hover{color:#e2e8f0;border-color:#64748b}
+
+/* ── Stats bar ── */
+.stats{display:flex;gap:12px;padding:20px 24px;flex-wrap:wrap}
+.stat{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 20px;min-width:120px}
+.stat-val{font-size:24px;font-weight:700;color:#f1f5f9;line-height:1}
+.stat-lbl{font-size:12px;color:#64748b;margin-top:4px}
+
+/* ── Filters ── */
+.filters{padding:0 24px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid #334155;background:transparent;color:#94a3b8;transition:all .15s}
+.filter-btn.active{background:#6366f1;border-color:#6366f1;color:#fff}
+.search-input{padding:6px 14px;border-radius:20px;font-size:13px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;outline:none;font-family:inherit;width:220px}
+.search-input:focus{border-color:#6366f1}
+
+/* ── Grid ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:0 24px 40px}
+
+/* ── Card ── */
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;transition:border-color .15s,transform .15s}
+.card:hover{border-color:#6366f1;transform:translateY(-2px)}
+.card-hero{height:8px;background:var(--pri)}
+.card-body{padding:18px}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px}
+.card-name{font-size:15px;font-weight:700;color:#f1f5f9;line-height:1.3}
+.card-cat{font-size:12px;color:#94a3b8;margin-top:2px}
+.stage-badge{flex-shrink:0;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-site_generated{background:#1e3a8a22;color:#93c5fd;border:1px solid #1e3a8a}
+.badge-link_sent{background:#14532d22;color:#86efac;border:1px solid #14532d}
+.badge-following_up{background:#78350f22;color:#fcd34d;border:1px solid #78350f}
+.badge-customer{background:#14532d44;color:#4ade80;border:1px solid #15803d}
+.badge-new{background:#1e1b4b22;color:#a5b4fc;border:1px solid #312e81}
+.badge-archived{background:#1e293b;color:#475569;border:1px solid #334155}
+.card-url{display:flex;align-items:center;gap:8px;background:#0f172a;border-radius:8px;padding:8px 12px;margin-bottom:12px}
+.card-url-text{font-size:12px;color:#6366f1;font-family:monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-meta{display:flex;gap:12px;font-size:12px;color:#64748b;flex-wrap:wrap}
+.card-meta span{display:flex;align-items:center;gap:4px}
+
+/* ── Empty ── */
+.empty{padding:80px 24px;text-align:center;color:#475569}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:18px;font-weight:600;color:#64748b;margin-bottom:8px}
+
+/* ── Loading ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:80px;color:#475569;gap:12px}
+.spinner{width:24px;height:24px;border:2px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 18px;font-size:14px;color:#e2e8f0;z-index:200;animation:slideUp .2s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand"># <span>Hashtag</span>Webpage &nbsp;·&nbsp; Published Sites</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="header-meta" id="last-updated"></span>
+    <button class="btn btn-sm btn-ghost" onclick="refreshData()">↺ Refresh</button>
+    <button class="btn btn-sm btn-ghost" onclick="showConfig()">⚙ Config</button>
+  </div>
+</div>
+
+<!-- Config modal -->
+<div class="overlay" id="config-overlay" style="display:none">
+  <div class="modal">
+    <h2>Connect to Supabase</h2>
+    <p>Enter your Supabase project URL and anon key. These are stored locally in your browser and never sent anywhere else.</p>
+    <div class="field">
+      <label>Supabase Project URL</label>
+      <input id="cfg-url" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label>Supabase Anon Key</label>
+      <input id="cfg-key" type="password" placeholder="eyJhbGci..." autocomplete="off"/>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
+      <button class="btn btn-ghost" onclick="hideConfig()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats" id="stats" style="display:none">
+  <div class="stat"><div class="stat-val" id="stat-total">–</div><div class="stat-lbl">Total Published</div></div>
+  <div class="stat"><div class="stat-val" id="stat-customers">–</div><div class="stat-lbl">Customers</div></div>
+  <div class="stat"><div class="stat-val" id="stat-sent">–</div><div class="stat-lbl">Link Sent</div></div>
+  <div class="stat"><div class="stat-val" id="stat-generated">–</div><div class="stat-lbl">Generated</div></div>
+</div>
+
+<!-- Filters -->
+<div class="filters" id="filters" style="display:none">
+  <button class="filter-btn active" data-stage="all" onclick="setFilter(this,'all')">All</button>
+  <button class="filter-btn" data-stage="customer" onclick="setFilter(this,'customer')">Customers</button>
+  <button class="filter-btn" data-stage="link_sent" onclick="setFilter(this,'link_sent')">Link Sent</button>
+  <button class="filter-btn" data-stage="following_up" onclick="setFilter(this,'following_up')">Following Up</button>
+  <button class="filter-btn" data-stage="site_generated" onclick="setFilter(this,'site_generated')">Generated</button>
+  <input class="search-input" id="search" placeholder="🔍  Search name or city…" oninput="renderCards()" />
+</div>
+
+<!-- Content -->
+<div id="content">
+  <div class="loading"><div class="spinner"></div> Loading…</div>
+</div>
+
+<script>
+const CATEGORY_COLORS = {
+  "Plumber":"#1d4ed8","Electrician":"#7c3aed","Landscaping":"#15803d",
+  "House Cleaning":"#0369a1","Roofing":"#b45309","HVAC":"#b91c1c",
+  "Painter":"#0f766e","Handyman":"#6d28d9","Auto Repair":"#374151",
+  "Barber":"#9a3412","Nail Salon":"#9d174d","Pet Grooming":"#0e7490",
+  "Tree Service":"#166534","Pest Control":"#9a3412","Pool Service":"#0369a1",
+  "Pressure Washing":"#1d4ed8"
+};
+
+const STAGE_LABELS = {
+  site_generated:"Generated", link_sent:"Link Sent",
+  following_up:"Following Up", customer:"Customer",
+  new:"New", archived:"Archived"
+};
+
+let allSites = [];
+let activeFilter = "all";
+
+// ── Config ──────────────────────────────────────────────────────────────────
+function getConfig() {
+  return {
+    url: localStorage.getItem("hwp_sb_url") || "",
+    key: localStorage.getItem("hwp_sb_key") || ""
+  };
+}
+function saveConfig() {
+  const url = document.getElementById("cfg-url").value.trim().replace(/\/$/, "");
+  const key = document.getElementById("cfg-key").value.trim();
+  if (!url || !key) { toast("Enter both URL and key"); return; }
+  localStorage.setItem("hwp_sb_url", url);
+  localStorage.setItem("hwp_sb_key", key);
+  hideConfig();
+  loadData();
+}
+function showConfig() {
+  const cfg = getConfig();
+  document.getElementById("cfg-url").value = cfg.url;
+  document.getElementById("cfg-key").value = cfg.key;
+  document.getElementById("config-overlay").style.display = "flex";
+}
+function hideConfig() {
+  document.getElementById("config-overlay").style.display = "none";
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+async function loadData() {
+  const cfg = getConfig();
+  if (!cfg.url || !cfg.key) { showConfig(); return; }
+
+  document.getElementById("content").innerHTML = '<div class="loading"><div class="spinner"></div> Loading…</div>';
+  document.getElementById("stats").style.display = "none";
+  document.getElementById("filters").style.display = "none";
+
+  try {
+    // Fetch all leads that have a preview_url (published sites)
+    const res = await fetch(
+      `${cfg.url}/rest/v1/leads?preview_url=not.is.null&order=updated_at.desc&limit=500`,
+      { headers: { "apikey": cfg.key, "Authorization": `Bearer ${cfg.key}`, "Content-Type": "application/json" } }
+    );
+    if (!res.ok) throw new Error(`Supabase error: ${res.status} ${await res.text()}`);
+    allSites = await res.json();
+
+    // Update stats
+    document.getElementById("stat-total").textContent = allSites.length;
+    document.getElementById("stat-customers").textContent = allSites.filter(s => s.stage === "customer").length;
+    document.getElementById("stat-sent").textContent = allSites.filter(s => s.stage === "link_sent").length;
+    document.getElementById("stat-generated").textContent = allSites.filter(s => s.stage === "site_generated").length;
+    document.getElementById("stats").style.display = "flex";
+    document.getElementById("filters").style.display = "flex";
+
+    const now = new Date();
+    document.getElementById("last-updated").textContent =
+      `Updated ${now.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}`;
+
+    renderCards();
+  } catch(e) {
+    document.getElementById("content").innerHTML =
+      `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load data</div><p style="color:#64748b;font-size:14px;margin-top:8px">${e.message}</p><button class="btn btn-ghost" style="margin-top:20px" onclick="showConfig()">Check Config</button></div>`;
+  }
+}
+
+function refreshData() { loadData(); }
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function setFilter(el, stage) {
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  activeFilter = stage;
+  renderCards();
+}
+
+function renderCards() {
+  const query = (document.getElementById("search")?.value || "").toLowerCase();
+  let sites = allSites;
+
+  if (activeFilter !== "all") sites = sites.filter(s => s.stage === activeFilter);
+  if (query) sites = sites.filter(s =>
+    (s.name || "").toLowerCase().includes(query) ||
+    (s.city || "").toLowerCase().includes(query) ||
+    (s.category || "").toLowerCase().includes(query)
+  );
+
+  const content = document.getElementById("content");
+  if (!sites.length) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No sites match</div></div>`;
+    return;
+  }
+
+  const cards = sites.map(s => {
+    const pri = CATEGORY_COLORS[s.category] || "#6366f1";
+    const stageLabel = STAGE_LABELS[s.stage] || s.stage;
+    const dateStr = s.updated_at
+      ? new Date(s.updated_at).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" })
+      : "—";
+    const url = s.preview_url || "";
+    const shortUrl = url.replace(/^https?:\/\//, "");
+
+    return `
+    <div class="card" style="--pri:${pri}">
+      <div class="card-hero"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <div>
+            <div class="card-name">${esc(s.name || "Unnamed")}</div>
+            <div class="card-cat">${esc(s.category || "")} · ${esc(s.city || "")}</div>
+          </div>
+          <span class="stage-badge badge-${s.stage}">${stageLabel}</span>
+        </div>
+        ${url ? `
+        <div class="card-url">
+          <span class="card-url-text">${esc(shortUrl)}</span>
+          <button class="btn btn-sm btn-ghost" style="padding:4px 8px;font-size:11px" onclick="copyLink('${esc(url)}')">Copy</button>
+          <a href="${esc(url)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:4px 8px;font-size:11px">↗ Open</a>
+        </div>` : ""}
+        <div class="card-meta">
+          ${s.phone ? `<span>📞 ${esc(s.phone)}</span>` : ""}
+          ${s.email ? `<span>✉ ${esc(s.email)}</span>` : ""}
+          <span>📅 ${dateStr}</span>
+          ${s.rating ? `<span>⭐ ${s.rating}</span>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  content.innerHTML = `<div class="grid">${cards}</div>`;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(() => toast("Link copied!"));
+}
+
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+const cfg = getConfig();
+if (cfg.url && cfg.key) {
+  loadData();
+} else {
+  document.getElementById("content").innerHTML = "";
+  showConfig();
+}
+</script>
+</body>
+</html>
