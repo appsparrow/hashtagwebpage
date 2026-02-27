@@ -648,7 +648,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const emailBody = {
-        from: fromEmail || "hello@hashtagwebpage.co",
+        from: fromEmail || "contact@hashtagwebpage.com",
         to: [to],
         subject: `${businessName} — your free website is ready to go live 🚀`,
         html: emailHtml
