@@ -299,10 +299,11 @@ function generateSiteHTML(lead, opts = {}) {
   // Absolute URLs for Open Graph (WhatsApp / iMessage / Telegram link previews)
   const siteOrigin = siteUrl ? new URL(siteUrl).origin : "";
   const ogImage    = siteOrigin ? `${siteOrigin}/assets/categories/${catSlug}.jpg` : "";
-  // Inline onerror helpers (escaped for template literal insertion)
-  const logoFallbackHero = `this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline'`;
-  const logoFallbackNav  = `this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline-flex'`;
-  const logoFallbackFoot = `this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='block'`;
+  // Fallback chain: category logo → yourlogo.png → emoji sibling
+  const defaultLogo = "/assets/logos/yourlogo.png";
+  const logoFallbackHero = `if(this.src.indexOf('yourlogo')===-1){this.onerror=function(){this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline'};this.src='${defaultLogo}'}else{this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline'}`;
+  const logoFallbackNav  = `if(this.src.indexOf('yourlogo')===-1){this.onerror=function(){this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline-flex'};this.src='${defaultLogo}'}else{this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline-flex'}`;
+  const logoFallbackFoot = `if(this.src.indexOf('yourlogo')===-1){this.onerror=function(){this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='block'};this.src='${defaultLogo}'}else{this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='block'}`;
 
   const themes = {
     "Plumber":          { pri:"#1d4ed8", sec:"#1e3a8a", acc:"#60a5fa", light:"#eff6ff", mid:"#bfdbfe", icon:"🔧", tagline:`Fast, Reliable Plumbing in ${city}`, svcs:["Pipe Repair & Replacement","Drain Cleaning","Water Heater Install","Emergency Plumbing","Leak Detection","Sewer Line Service"] },
