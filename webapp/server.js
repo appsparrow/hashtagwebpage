@@ -614,6 +614,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── GET /assets/... — serve static assets from sites/assets/ ──────────────
+  // e.g. /assets/categories/plumber.jpg → webapp/sites/assets/categories/plumber.jpg
+  if (req.method === "GET" && pathname.startsWith("/assets/")) {
+    const assetPath = path.join(__dirname, "sites", pathname);
+    const ext = path.extname(assetPath).toLowerCase();
+    const mimeTypes = {
+      ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+      ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+      ".css": "text/css", ".js": "application/javascript", ".json": "application/json",
+      ".woff": "font/woff", ".woff2": "font/woff2", ".ttf": "font/ttf",
+    };
+    const mime = mimeTypes[ext] || "application/octet-stream";
+    if (fs.existsSync(assetPath)) {
+      res.writeHead(200, { "Content-Type": mime, "Cache-Control": "public, max-age=86400" });
+      fs.createReadStream(assetPath).pipe(res);
+      return;
+    }
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end(`Asset not found: ${pathname}`);
+    return;
+  }
+
   // ── GET /sites/:slug — serve a locally saved site ─────────────────────────
   if (req.method === "GET" && pathname.startsWith("/sites/")) {
     const parts = pathname.split("/").filter(Boolean);  // ["sites", "slug"]
