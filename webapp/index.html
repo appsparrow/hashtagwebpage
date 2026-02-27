@@ -38,6 +38,11 @@
 const APP_NAME = "HashtagWebpage";
 const CF_DEFAULT_PROJECT = "hashtagwebpage";
 
+// ── Supabase config — set these once before deploying, anon key is safe to be public ──
+// The anon key is a JWT with role:anon; real security comes from RLS policies in Supabase.
+const SUPABASE_URL      = "";   // e.g. "https://xxxx.supabase.co"
+const SUPABASE_ANON_KEY = "";   // e.g. "eyJhbGci..."
+
 const MOCK_LEADS = [
   { id: "ChIJ1", name: "Mike's Plumbing Co", category: "Plumber", city: "Chicago, IL",
     phone: "(312) 555-0182", address: "4421 N Milwaukee Ave, Chicago, IL 60630",
@@ -108,7 +113,15 @@ const STAGES = {
 const store = {
   getLeads:    () => { try { return JSON.parse(localStorage.getItem("hw_leads") || "null") || MOCK_LEADS; } catch { return MOCK_LEADS; } },
   saveLeads:   (l) => localStorage.setItem("hw_leads", JSON.stringify(l)),
-  getSettings: () => { try { return JSON.parse(localStorage.getItem("hw_settings") || "{}"); } catch { return {}; } },
+  getSettings: () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("hw_settings") || "{}");
+      // Hardcoded constants always win over localStorage for Supabase config
+      if (SUPABASE_URL)      saved.supabaseUrl  = SUPABASE_URL;
+      if (SUPABASE_ANON_KEY) saved.supabaseKey  = SUPABASE_ANON_KEY;
+      return saved;
+    } catch { return {}; }
+  },
   saveSettings:(s) => localStorage.setItem("hw_settings", JSON.stringify(s))
 };
 
@@ -2007,24 +2020,25 @@ function LoginField({ label, value, onChange, type, placeholder }) {
 // LOGIN SCREEN
 // ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const savedSettings = store.getSettings();
-  const [sbUrl,  setSbUrl]  = React.useState(savedSettings.supabaseUrl  || "");
-  const [sbKey,  setSbKey]  = React.useState(savedSettings.supabaseKey  || "");
   const [email,  setEmail]  = React.useState("");
   const [pass,   setPass]   = React.useState("");
   const [error,  setError]  = React.useState("");
   const [loading,setLoading]= React.useState(false);
 
+  // Resolve Supabase config: hardcoded constants → localStorage Settings fallback
+  const resolvedUrl = SUPABASE_URL || store.getSettings().supabaseUrl || "";
+  const resolvedKey = SUPABASE_ANON_KEY || store.getSettings().supabaseKey || "";
+
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!sbUrl || !sbKey) { setError("Enter your Supabase URL and anon key first."); return; }
-    if (!email || !pass)  { setError("Enter your email and password."); return; }
+    if (!resolvedUrl || !resolvedKey) {
+      setError("Supabase not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in index.html before deploying.");
+      return;
+    }
+    if (!email || !pass) { setError("Enter your email and password."); return; }
     setError(""); setLoading(true);
     try {
-      await auth.signIn(sbUrl.trim(), sbKey.trim(), email.trim(), pass);
-      // Persist Supabase config if it wasn't saved yet
-      const s = store.getSettings();
-      store.saveSettings({ ...s, supabaseUrl: sbUrl.trim(), supabaseKey: sbKey.trim() });
+      await auth.signIn(resolvedUrl, resolvedKey, email.trim(), pass);
       onLogin();
     } catch (err) {
       setError(err.message || "Login failed");
@@ -2033,27 +2047,20 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div style={{ minHeight:"100vh", background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px", fontFamily:"'Inter',system-ui,sans-serif" }}>
-      <div style={{ width:"100%", maxWidth:"420px" }}>
+      <div style={{ width:"100%", maxWidth:"400px" }}>
         {/* Logo */}
         <div style={{ textAlign:"center", marginBottom:"32px" }}>
           <div style={{ fontSize:"28px", fontWeight:800, color:"#f1f5f9", letterSpacing:"-.03em" }}>
             <span style={{ color:"#6366f1" }}>#</span>HashtagWebpage
           </div>
-          <div style={{ fontSize:"13px", color:"#475569", marginTop:"6px" }}>CRM Admin Panel</div>
+          <div style={{ fontSize:"13px", color:"#475569", marginTop:"6px" }}>CRM · Admin Access</div>
         </div>
 
         {/* Card */}
         <form onSubmit={handleLogin} style={{ background:"#1e293b", border:"1px solid #334155", borderRadius:"16px", padding:"32px" }}>
-          <h2 style={{ fontSize:"18px", fontWeight:700, color:"#f1f5f9", marginBottom:"4px", marginTop:0 }}>Sign in</h2>
-          <p style={{ fontSize:"13px", color:"#64748b", marginBottom:"24px", marginTop:"4px" }}>Admin access only</p>
+          <h2 style={{ fontSize:"18px", fontWeight:700, color:"#f1f5f9", marginBottom:"20px", marginTop:0 }}>Sign in</h2>
 
-          {(!savedSettings.supabaseUrl) && <>
-            <LoginField label="SUPABASE URL"      value={sbUrl}  onChange={setSbUrl}  placeholder="https://xxxx.supabase.co" />
-            <LoginField label="SUPABASE ANON KEY" value={sbKey}  onChange={setSbKey}  placeholder="eyJhbGci..." type="password" />
-            <div style={{ borderTop:"1px solid #334155", margin:"16px 0" }} />
-          </>}
-
-          <LoginField label="EMAIL"    value={email} onChange={setEmail} placeholder="admin@hashtagwebpage.com" type="email" />
+          <LoginField label="EMAIL"    value={email} onChange={setEmail} placeholder="you@hashtagwebpage.com" type="email" />
           <LoginField label="PASSWORD" value={pass}  onChange={setPass}  placeholder="••••••••" type="password" />
 
           {error && (
@@ -2069,10 +2076,6 @@ function LoginScreen({ onLogin }) {
             {loading ? "Signing in…" : "Sign in →"}
           </button>
         </form>
-
-        <p style={{ textAlign:"center", fontSize:"12px", color:"#334155", marginTop:"20px" }}>
-          First time? Create an admin user in Supabase Dashboard → Authentication → Users
-        </p>
       </div>
     </div>
   );
