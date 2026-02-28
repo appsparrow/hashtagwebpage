@@ -420,9 +420,17 @@ function generateSiteHTML(lead, opts = {}) {
   const starsFull = hasRating ? Math.round(rating) : 0;
   const starsStr  = "★".repeat(starsFull) + "☆".repeat(5 - starsFull);
 
+  // Address encoded for Google Maps free embed (no API key needed)
+  const mapsQuery = encodeURIComponent((address || name) + ", " + city);
+  const mapsEmbedUrl = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
+
   return `<!DOCTYPE html>
+<!-- HashtagWebpage.com — Professional Website for ${name} -->
+<!-- Built by HashtagWebpage · hashtagwebpage.com -->
+<!-- Unauthorized copying or redistribution is prohibited -->
 <html lang="en">
 <head>
+<!-- HashtagWebpage · ${category} Website · ${city} -->
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>${name} | ${category} in ${city}</title>
 <meta name="description" content="${name} — trusted ${category.toLowerCase()} serving ${city}. Call today for a free estimate. Licensed, insured &amp; highly rated."/>
@@ -530,7 +538,23 @@ footer a{color:#94a3b8;text-decoration:none;transition:color .15s}
 footer a:hover{color:#fff}
 .footer-brand{font-size:.92rem;font-weight:800;color:#e2e8f0;margin-bottom:6px}
 /* PREVIEW BANNER */
-${!siteVisible ? `.preview-banner{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#1a1a2e;text-align:center;padding:10px 20px;font-size:.84rem;font-weight:600;box-shadow:0 -4px 20px rgba(0,0,0,.15)}` : ""}
+${!siteVisible ? `
+.preview-bar{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);border-bottom:2px solid #6366f1;padding:0;font-family:'Inter',system-ui,sans-serif}
+.preview-bar-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
+.preview-bar-left{display:flex;align-items:center;gap:10px}
+.preview-bar-badge{background:#6366f1;color:#fff;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:100px;flex-shrink:0}
+.preview-bar-msg{color:#e2e8f0;font-size:.82rem;font-weight:500}
+.preview-bar-msg strong{color:#fff}
+.preview-bar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.preview-bar-pay{background:#6366f1;color:#fff;padding:7px 16px;border-radius:100px;font-size:.78rem;font-weight:700;text-decoration:none;transition:background .15s;white-space:nowrap}
+.preview-bar-pay:hover{background:#4f46e5}
+.preview-bar-dismiss{color:#475569;font-size:.75rem;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 8px;border-radius:6px;transition:color .15s}
+.preview-bar-dismiss:hover{color:#94a3b8}
+body{padding-top:52px}
+.nav{top:52px}
+/* Disable text selection & right-click on preview sites */
+body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
+` : ""}
 /* RESPONSIVE */
 @media(max-width:640px){
   .hero{padding:70px 20px 80px}
@@ -541,9 +565,24 @@ ${!siteVisible ? `.preview-banner{position:fixed;bottom:0;left:0;right:0;z-index
 @media(max-width:400px){.services-grid,.why-grid{grid-template-columns:1fr}}
 </style>
 </head>
+<!-- HashtagWebpage · hashtagwebpage.com · All rights reserved -->
 <body>
 
-<!-- NAV -->
+${!siteVisible ? `<!-- PREVIEW BANNER — HashtagWebpage.com -->
+<div class="preview-bar" id="hwp-preview-bar">
+  <div class="preview-bar-inner">
+    <div class="preview-bar-left">
+      <span class="preview-bar-badge">Preview Only</span>
+      <span class="preview-bar-msg"><strong>This is a free preview</strong> built for ${name}. Like what you see? Keep it live for just $49/mo.</span>
+    </div>
+    <div class="preview-bar-actions">
+      <a href="https://hashtagwebpage.com" class="preview-bar-pay">💳 Keep This Site →</a>
+      <button class="preview-bar-dismiss" onclick="document.getElementById('hwp-preview-bar').style.display='none';document.body.style.paddingTop='0';document.querySelector('.nav').style.top='0'">✕ dismiss</button>
+    </div>
+  </div>
+</div>` : ""}
+
+<!-- NAV — Built by HashtagWebpage.com -->
 <nav class="nav">
   <div class="nav-brand">
     <img class="nav-logo" src="${logoPath}" alt="${name} logo" onerror="${logoFallbackNav}">
@@ -628,6 +667,29 @@ ${hasRating ? `<!-- RATING -->
   </div>
 </div>` : ""}
 
+<!-- FIND US — Google Maps Embed (HashtagWebpage.com) -->
+<!-- HashtagWebpage · Location Map for ${name} · ${city} -->
+<div style="background:#f8fafc;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb">
+  <div style="max-width:1100px;margin:0 auto;padding:48px 24px">
+    <div style="text-align:center;margin-bottom:24px">
+      <span style="display:inline-block;background:var(--light);color:var(--pri);padding:4px 14px;border-radius:100px;font-size:.73rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--mid)">Find Us</span>
+      <h2 style="font-size:clamp(1.4rem,3vw,2rem);font-weight:800;color:#111827;margin-top:10px;letter-spacing:-.03em">Visit <span style="color:var(--pri)">${name}</span></h2>
+      <p style="color:#6b7280;font-size:.93rem;margin-top:6px">📍 ${address}, ${city}</p>
+    </div>
+    <div style="border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1);border:1px solid #e5e7eb">
+      <iframe
+        src="${mapsEmbedUrl}"
+        width="100%" height="380" frameborder="0"
+        style="display:block;border:0"
+        allowfullscreen loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="Location of ${name} in ${city}">
+      </iframe>
+    </div>
+  </div>
+</div>
+<!-- End location section — HashtagWebpage.com -->
+
 <!-- CONTACT -->
 <div id="contact" class="contact-section">
   <div class="contact-inner">
@@ -647,7 +709,8 @@ ${hasRating ? `<!-- RATING -->
   </div>
 </div>
 
-<!-- FOOTER -->
+<!-- FOOTER — HashtagWebpage.com -->
+<!-- This website was designed, built, and deployed by HashtagWebpage · hashtagwebpage.com -->
 <footer>
   <img class="foot-logo" src="${logoPath}" alt="${name} logo" onerror="${logoFallbackFoot}">
   <div class="footer-brand" style="display:none">${t.icon} ${name}</div>
@@ -657,7 +720,7 @@ ${hasRating ? `<!-- RATING -->
   <p style="margin-top:12px;opacity:.55">© ${new Date().getFullYear()} ${name} &nbsp;·&nbsp; Website by <a href="https://hashtagwebpage.com" target="_blank">HashtagWebpage</a></p>
 </footer>
 
-${!siteVisible ? '<div class="preview-banner">🔒 Preview Mode — This site is not yet public. <a href="https://hashtagwebpage.com" style="color:#1a1a2e;text-decoration:underline">Contact HashtagWebpage</a> to publish it.</div>' : ""}
+<!-- HashtagWebpage · hashtagwebpage.com · End of page -->
 
 <script>
 (function(){
@@ -677,8 +740,12 @@ ${!siteVisible ? '<div class="preview-banner">🔒 Preview Mode — This site is
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener("click",function(e){var el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"});}});
   });
+  ${!siteVisible ? `/* HashtagWebpage preview protection */
+  document.addEventListener("contextmenu",function(e){e.preventDefault();});
+  document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="s"||e.key==="a")){e.preventDefault();}});` : ""}
 })();
 <\/script>
+<!-- HashtagWebpage.com — Website created for ${name} · ${category} · ${city} -->
 </body>
 </html>`;
 }
@@ -2023,10 +2090,6 @@ function SitesView({ leads }) {
           <h1 className="text-2xl font-bold text-white">Published Sites</h1>
           <p className="text-slate-400 text-sm mt-1">{published.length} site{published.length !== 1 ? "s" : ""} built · {published.filter(l => l.stage === "customer").length} paying customers</p>
         </div>
-        <a href="https://hashtagwebpage.com/_sites/" target="_blank" rel="noopener"
-          className="text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg transition-colors">
-          ↗ Open full page
-        </a>
       </div>
 
       {/* Filters + Search */}
