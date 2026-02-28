@@ -72,10 +72,15 @@ serve(async (req) => {
     // Continue — if the file doesn't exist yet, sha stays null
   }
 
-  // Base64-encode the HTML
-  const encoder  = new TextEncoder();
-  const bytes    = encoder.encode(html);
-  const b64      = btoa(String.fromCharCode(...bytes));
+  // Base64-encode the HTML (chunked to avoid call-stack overflow on large files)
+  const encoder   = new TextEncoder();
+  const bytes     = encoder.encode(html);
+  let   binary    = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  const b64 = btoa(binary);
 
   // PUT file to GitHub
   const putRes = await fetch(apiUrl, {
