@@ -32,7 +32,7 @@ These require terminal/browser actions the user must do:
 - Root directory: `webapp` (not `webapp/sites`)
 - Build command: (none — static)
 - Output: `webapp`
-- Domain: `app.hashtagwebpage.pages.dev` or custom `app.hashtagwebpage.com`
+- Domain: `app.hashtagwebpage.com` or custom `app.hashtagwebpage.com`
 
 ### 1c. Generate GitHub Personal Access Token
 - github.com → Settings → Developer Settings → Personal Access Tokens → Fine-grained
@@ -42,7 +42,7 @@ These require terminal/browser actions the user must do:
 
 ### 1d. Restrict Google Places API key
 - Google Cloud Console → Credentials → edit your API key
-- HTTP referrers: `https://app.hashtagwebpage.pages.dev/*` and `https://app.hashtagwebpage.com/*`
+- HTTP referrers: `https://app.hashtagwebpage.com/*` and `https://app.hashtagwebpage.com/*`
 - This lets the browser call Places API directly without a proxy
 
 ---
@@ -81,7 +81,7 @@ Once deployed, update these in the CRM Settings panel:
 | GitHub Owner | your GitHub username |
 | GitHub Repo | `hashtagwebpage` |
 | GitHub Token | fine-grained token with Contents:Write |
-| CF Pages Domain | `hashtagwebpage.pages.dev` |
+| CF Pages Domain | `hashtagwebpage.com` |
 | CF Project Name | `hashtagwebpage` |
 | Google API Key | restricted to app domain |
 

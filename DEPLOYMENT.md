@@ -69,7 +69,7 @@ create policy "allow all" on leads for all using (true);
 3. Under "Application restrictions" → HTTP referrers
 4. Add:
    - `https://app.hashtagwebpage.com/*`
-   - `https://app.hashtagwebpage.pages.dev/*`
+   - `https://app.hashtagwebpage.com/*`
    - `http://localhost:3000/*` (keep for local dev)
 5. Save
 
@@ -103,8 +103,8 @@ npm install -g supabase
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
 
-supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+supabase secrets set RESEND_API_KEY=re_SyYHPAjP_KryYbv4Zp4tqWxUTauxVuSZ3
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcnRnZmpsZWlmeGxkcGNleXJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTg3ODUsImV4cCI6MjA4Nzc5NDc4NX0.8Tc7JhrNrxASsigkXI1aA4NSuP5fc9Rp4PyPQa2lxY4
 
 supabase functions deploy send-email --no-verify-jwt
 supabase functions deploy stripe-webhook --no-verify-jwt
@@ -123,7 +123,7 @@ Open the CRM at your new URL and go to Settings. Fill in:
 | GitHub Owner | your GitHub username |
 | GitHub Repo | `hashtagwebpage` |
 | GitHub Token | `github_pat_xxxx` |
-| CF Pages Domain | `hashtagwebpage.pages.dev` |
+| CF Pages Domain | `hashtagwebpage.com` |
 | CF Project Name | `hashtagwebpage` |
 | Google API Key | your restricted key |
 | Resend API Key | `re_xxxx` (optional — edge fn uses it server-side) |

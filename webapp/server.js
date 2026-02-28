@@ -423,7 +423,7 @@ const server = http.createServer(async (req, res) => {
   // ── POST /api/deploy — save site to sites/[slug]/ and push to GitHub ──────
   // CF Pages (GitHub-connected) auto-deploys the webapp/sites/ folder.
   // Configure "CF Pages Domain" in Settings → Cloudflare Pages:
-  //   hashtagwebpage.com  or  hashtagwebpage.pages.dev
+  //   hashtagwebpage.com  or  hashtagwebpage.com
   if (req.method === "POST" && pathname === "/api/deploy") {
     try {
       const body = JSON.parse(await readBody(req));
@@ -452,7 +452,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Step 3: Build production URL from configured domain
-      const domain = (cfPagesDomain || "hashtagwebpage.pages.dev")
+      const domain = (cfPagesDomain || "hashtagwebpage.com")
         .replace(/^https?:\/\//, "").replace(/\/$/, "");
       const productionUrl = `https://${domain}/${slug}`;
 
@@ -507,7 +507,7 @@ const server = http.createServer(async (req, res) => {
         console.warn(`[DEPLOY-HOME] ⚠️  Git push skipped: ${gitErr.message.split("\n")[0]}`);
       }
 
-      const domain = (cfPagesDomain || "hashtagwebpage.pages.dev")
+      const domain = (cfPagesDomain || "hashtagwebpage.com")
         .replace(/^https?:\/\//, "").replace(/\/$/, "");
       const productionUrl = `https://${domain}`;
 

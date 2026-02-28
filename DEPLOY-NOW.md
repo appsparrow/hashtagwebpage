@@ -13,8 +13,8 @@ You (CEO)
        └─ Cloudflare Pages           ← deploys client sites + your marketing page
 
 Cloudflare Pages (public)
-  ├─ hashtagwebpage.pages.dev/        ← your marketing homepage
-  └─ hashtagwebpage.pages.dev/slug/   ← each client's generated website
+  ├─ hashtagwebpage.com/        ← your marketing homepage
+  └─ hashtagwebpage.com/slug/   ← each client's generated website
 
 n8n (background, always on)
   ├─ Workflow 1: Daily 9am  → scrape leads → save to Supabase
@@ -56,7 +56,7 @@ In app Settings → Supabase:
 
 ### Step 4: Deploy Marketing Homepage
 In app Settings → Cloudflare Pages → click **🏠 Deploy Homepage**
-→ Live at: `https://hashtagwebpage.pages.dev`
+→ Live at: `https://hashtagwebpage.com`
 
 ### Step 5: Run the App
 ```bash
@@ -126,7 +126,7 @@ binding = "LEADS_KV"
 id = "PASTE_YOUR_KV_ID_HERE"
 
 [vars]
-ALLOWED_ORIGIN = "https://hashtagwebpage.pages.dev"
+ALLOWED_ORIGIN = "https://hashtagwebpage.com"
 FROM_EMAIL = "hello@yourdomain.com"
 EOF
 

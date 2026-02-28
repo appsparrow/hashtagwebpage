@@ -54,21 +54,21 @@ const MOCK_LEADS = [
     rating: 4.9, reviewCount: 112, hasWebsite: false, stage: "site_generated",
     mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 5,
     sentAt: null, followUpAt: null, convertedAt: null,
-    previewUrl: "https://hashtagwebpage.pages.dev/green-thumb-landscaping-austin-tx",
+    previewUrl: "https://hashtagwebpage.com/green-thumb-landscaping-austin-tx",
     email: null, notes: "" },
   { id: "ChIJ3", name: "Clean Sweep Maids", category: "House Cleaning", city: "Denver, CO",
     phone: "(720) 555-0411", address: "220 Blake St, Denver, CO 80205",
     rating: 4.8, reviewCount: 76, hasWebsite: false, stage: "link_sent",
     mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 7,
     sentAt: Date.now() - 86400000 * 2, followUpAt: Date.now() + 86400000 * 5,
-    convertedAt: null, previewUrl: "https://hashtagwebpage.pages.dev/clean-sweep-maids-denver-co",
+    convertedAt: null, previewUrl: "https://hashtagwebpage.com/clean-sweep-maids-denver-co",
     email: "info@cleansweep.com", notes: "Owner seemed interested on the phone" },
   { id: "ChIJ4", name: "Rodriguez Electric", category: "Electrician", city: "Miami, FL",
     phone: "(305) 555-0574", address: "1100 Brickell Ave, Miami, FL 33131",
     rating: 4.6, reviewCount: 54, hasWebsite: false, stage: "following_up",
     mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 14,
     sentAt: Date.now() - 86400000 * 7, followUpAt: Date.now() - 86400000 * 1,
-    convertedAt: null, previewUrl: "https://hashtagwebpage.pages.dev/rodriguez-electric-miami-fl",
+    convertedAt: null, previewUrl: "https://hashtagwebpage.com/rodriguez-electric-miami-fl",
     email: "carlos@rodriguezelectric.com", notes: "Follow up call scheduled" },
   { id: "ChIJ5", name: "Apex Roofing Solutions", category: "Roofing", city: "Phoenix, AZ",
     phone: "(602) 555-0638", address: "3250 E Camelback Rd, Phoenix, AZ 85018",
@@ -76,7 +76,7 @@ const MOCK_LEADS = [
     mapsUrl: "https://maps.google.com", foundAt: Date.now() - 86400000 * 21,
     sentAt: Date.now() - 86400000 * 16, followUpAt: null,
     convertedAt: Date.now() - 86400000 * 3,
-    previewUrl: "https://hashtagwebpage.pages.dev/apex-roofing-solutions-phoenix-az",
+    previewUrl: "https://hashtagwebpage.com/apex-roofing-solutions-phoenix-az",
     email: "steve@apexroofing.com", notes: "Paid $100 setup. Monthly hosting $5." },
   { id: "ChIJ6", name: "Fresh Cut Barbershop", category: "Barber", city: "Atlanta, GA",
     phone: "(404) 555-0712", address: "567 Peachtree St NE, Atlanta, GA 30308",
@@ -388,7 +388,7 @@ async function deployViaGitHub(slug, html, settings) {
     throw new Error(err.message || `GitHub API error ${putRes.status}`);
   }
 
-  const domain = (cfPagesDomain || "hashtagwebpage.pages.dev").replace(/^https?:\/\//, "");
+  const domain = (cfPagesDomain || "hashtagwebpage.com").replace(/^https?:\/\//, "");
   return `https://${domain}/${slug}`;
 }
 
@@ -1443,7 +1443,7 @@ function DashboardView({ leads, settings, addToast, onSync, syncStatus }) {
             className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all">
             <span className="text-lg">🌐</span>
             <span className="text-sm font-medium text-white">View Marketing Site</span>
-            <span className="text-xs text-slate-500">hashtagwebpage.pages.dev</span>
+            <span className="text-xs text-slate-500">hashtagwebpage.com</span>
           </a>
           <a href="http://localhost:5678" target="_blank" rel="noopener"
             className="flex flex-col items-start gap-1 p-3 bg-slate-900 hover:bg-slate-700 rounded-xl border border-slate-700/50 hover:border-slate-500 transition-all">
@@ -1752,7 +1752,7 @@ function SettingsView({ settings, onSave, addToast }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cfPagesDomain: form.cfPagesDomain || "hashtagwebpage.pages.dev"
+          cfPagesDomain: form.cfPagesDomain || "hashtagwebpage.com"
         })
       });
       const data = await res.json();
@@ -1792,10 +1792,10 @@ function SettingsView({ settings, onSave, addToast }) {
         <p className="text-xs text-slate-500 mb-4">
           Sites deploy via GitHub → CF Pages auto-deploys in ~30s. Set your domain below
           so generated links use <code className="text-indigo-400 mx-1">hashtagwebpage.com/business-slug</code>
-          or <code className="text-indigo-400 mx-1">hashtagwebpage.pages.dev/business-slug</code>.
+          or <code className="text-indigo-400 mx-1">hashtagwebpage.com/business-slug</code>.
         </p>
         <div className="space-y-3">
-          <SettingsField k="cfPagesDomain" label="Pages Domain" placeholder="hashtagwebpage.com" help="Your CF Pages domain — hashtagwebpage.com or hashtagwebpage.pages.dev" form={form} set={set} />
+          <SettingsField k="cfPagesDomain" label="Pages Domain" placeholder="hashtagwebpage.com" help="Your CF Pages domain — hashtagwebpage.com or hashtagwebpage.com" form={form} set={set} />
           <SettingsField k="cfProjectName" label="CF Project Name" placeholder="hashtagwebpage"  help="CF Pages project name (same as GitHub repo CF Pages is connected to)" form={form} set={set} />
           <SettingsField k="githubOwner"   label="GitHub Owner"    placeholder="yourusername"    help="Your GitHub username or org (e.g. appsparrow)" form={form} set={set} />
           <SettingsField k="githubRepo"    label="GitHub Repo"     placeholder="hashtagwebpage"  help="The repo CF Pages deploys from (e.g. hashtagwebpage)" form={form} set={set} />
@@ -1903,14 +1903,14 @@ function SettingsView({ settings, onSave, addToast }) {
         </p>
         <div className="flex flex-wrap gap-3">
           <a
-            href={`https://${settings.cfPagesDomain || "hashtagwebpage.pages.dev"}/_sites/`}
+            href={`https://${settings.cfPagesDomain || "hashtagwebpage.com"}/_sites/`}
             target="_blank" rel="noopener"
             className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             ↗ Open Sites Directory
           </a>
           <button
-            onClick={() => { navigator.clipboard.writeText(`https://${settings.cfPagesDomain || "hashtagwebpage.pages.dev"}/_sites/`); addToast("Link copied!"); }}
+            onClick={() => { navigator.clipboard.writeText(`https://${settings.cfPagesDomain || "hashtagwebpage.com"}/_sites/`); addToast("Link copied!"); }}
             className="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             Copy Link
@@ -1982,7 +1982,7 @@ function SettingsView({ settings, onSave, addToast }) {
         <div className="text-sm text-slate-300 space-y-1">
           <p>• <strong>Free preview</strong> — business sees their site with no obligation</p>
           <p>• <strong>$100 setup fee</strong> — domain setup + 2 months hosting included</p>
-          <p>• <strong>$5/month</strong> hosting on <code>hashtagwebpage.pages.dev/slug</code></p>
+          <p>• <strong>$5/month</strong> hosting on <code>hashtagwebpage.com/slug</code></p>
           <p>• <strong>$200 buyout</strong> — custom domain, transferred to them</p>
         </div>
       </div>
@@ -2173,7 +2173,7 @@ function App() {
         return;
       }
       const slug           = slugify(lead.name, lead.city);
-      const domain         = settings.cfPagesDomain || "hashtagwebpage.pages.dev";
+      const domain         = settings.cfPagesDomain || "hashtagwebpage.com";
       const siteUrl        = `https://${domain}/${slug}`;
       const html           = generateSiteHTML(lead, { siteVisible: settings.siteVisible !== false, siteUrl });
 

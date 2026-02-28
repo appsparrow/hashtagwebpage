@@ -19,7 +19,7 @@
 
                     ▼
              CF Pages (sites)
-             hashtagwebpage.pages.dev
+             hashtagwebpage.com
              Serves client websites
              + /assets/ (heroes, logos)
 ```
@@ -39,7 +39,7 @@
 3. Deploy (browser → GitHub API → CF Pages)
    → PUT /repos/{owner}/{repo}/contents/webapp/sites/{slug}/index.html
    → CF Pages detects commit → builds in ~45s
-   → Site live at hashtagwebpage.pages.dev/{slug}
+   → Site live at hashtagwebpage.com/{slug}
 
 4. Send Preview (browser → Supabase Edge Fn → Resend)
    → POST /functions/v1/send-email
