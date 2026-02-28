@@ -70,37 +70,25 @@ serve(async (req) => {
   </td></tr>
 
   <tr><td style="background:white;padding:36px 32px">
-    <p style="font-size:16px;color:#374151;line-height:1.75;margin:0 0 28px">${(hookMessage || `Hi ${businessName} team! We built you a free website preview — take a look:`).replace(/\n/g, "<br>")}</p>
+    <p style="font-size:15px;color:#374151;line-height:1.75;margin:0 0 8px;font-weight:600">Hi there,</p>
+    <p style="font-size:15px;color:#374151;line-height:1.75;margin:0 0 28px">I noticed ${businessName} could use a stronger web presence, so I took the liberty of building a professional starter preview — completely free.</p>
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
       <a href="${previewUrl}" style="display:inline-block;background:linear-gradient(135deg,${themePri},${themeAcc});color:white;padding:16px 40px;border-radius:100px;text-decoration:none;font-weight:800;font-size:17px;letter-spacing:-.01em;box-shadow:0 6px 24px rgba(0,0,0,.18)">
-        View Your Free Website →
+        👀 See Your Free Website →
       </a>
     </td></tr></table>
-    <p style="font-size:13px;color:#9ca3af;text-align:center;margin:16px 0 0">
-      <a href="${previewUrl}" style="color:${themePri};text-decoration:none;font-size:12px">${previewUrl}</a>
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;border-top:1px solid #f0f0f0;padding-top:24px">
-      <tr>
-        <td width="32%" style="text-align:center;padding:16px 8px;background:#f8fafc;border-radius:10px">
-          <div style="font-size:22px;margin-bottom:6px">💰</div>
-          <div style="font-weight:800;font-size:18px;color:#111827">$49<span style="font-size:12px;font-weight:400;color:#6b7280">/mo</span></div>
-          <div style="font-size:11px;color:#6b7280;margin-top:4px">Keep it live</div>
-        </td>
-        <td width="4%"></td>
-        <td width="60%" style="text-align:center;padding:16px 8px;background:linear-gradient(135deg,${themePri}15,${themeAcc}15);border-radius:10px;border:1px solid ${themePri}30">
-          <div style="font-size:22px;margin-bottom:6px">⭐</div>
-          <div style="font-weight:800;font-size:18px;color:#111827">$297 <span style="font-size:12px;font-weight:400;color:#6b7280">one-time</span></div>
-          <div style="font-size:11px;color:#6b7280;margin-top:4px">Own it forever + custom domain</div>
-        </td>
-      </tr>
-    </table>
-    <p style="font-size:13px;color:#9ca3af;margin:24px 0 0;line-height:1.6">
-      Just reply to this email or call us to get started. Your site is live now — we just need your go-ahead to keep it that way.
-    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.75;margin:28px 0 0">How this works:</p>
+    <ul style="font-size:14px;color:#374151;line-height:1.8;margin:10px 0 28px 20px;padding:0">
+      <li style="margin-bottom:8px">✅ Love it? Own it for a one-time fee of <strong>$299</strong> — no monthly charges, ever.</li>
+      <li style="margin-bottom:8px">✏️ Want changes? Just reply to this email — tweaks are free.</li>
+      <li>❌ Not interested? Click 'Not the right fit?' on the preview page and we'll delete it immediately.</li>
+    </ul>
+    <p style="font-size:14px;color:#374151;line-height:1.75;margin:0">No credit cards. No invoices. No follow-up spam. Just a free website, on us.</p>
+    <p style="font-size:14px;color:#374151;line-height:1.75;margin:20px 0 0">— The HashtagWebpage Team<br/><a href="https://hashtagwebpage.com" style="color:${themePri};text-decoration:none">hashtagwebpage.com</a></p>
   </td></tr>
 
   <tr><td style="background:#0f172a;padding:20px 32px;text-align:center">
-    <p style="color:#64748b;font-size:12px;margin:0">— The HashtagWebpage Team &nbsp;·&nbsp; <a href="https://hashtagwebpage.com" style="color:#94a3b8;text-decoration:none">hashtagwebpage.com</a></p>
+    <p style="color:#64748b;font-size:12px;margin:0;opacity:.7">This is a free preview built for ${businessName}. Not interested? Let us know from the preview page.</p>
   </td></tr>
 
 </table>
@@ -117,7 +105,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from:    "contact@hashtagwebpage.com",
         to:      [to],
-        subject: `${businessName} — your free website is ready to go live 🚀`,
+        subject: `I built a starter website for ${businessName} — take a look?`,
         html:    emailHtml,
       }),
     });
