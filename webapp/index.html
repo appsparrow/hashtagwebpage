@@ -1231,7 +1231,7 @@ function WebsitePreviewModal({ lead, settings, onClose }) {
   const slug = slugify(lead.name, lead.city);
   const proj = settings?.cfProjectName || CF_DEFAULT_PROJECT;
   const deployUrl = `https://${proj}.pages.dev/${slug}`;
-  const html = generateSiteHTML(lead, { siteVisible: settings?.siteVisible !== false, siteUrl: deployUrl });
+  const html = generateSiteHTML(lead, { siteVisible: lead.stage === "customer", siteUrl: deployUrl });
   const [copied, setCopied] = React.useState(false);
 
   const download = () => {
@@ -2337,7 +2337,8 @@ function App() {
       const slug           = slugify(lead.name, lead.city);
       const domain         = settings.cfPagesDomain || "hashtagwebpage.com";
       const siteUrl        = `https://${domain}/${slug}`;
-      const html           = generateSiteHTML(lead, { siteVisible: settings.siteVisible !== false, siteUrl });
+      // noindex + preview banner on ALL non-customer sites — removed only when lead pays and is redeployed
+      const html           = generateSiteHTML(lead, { siteVisible: lead.stage === "customer", siteUrl });
 
       setDeploying(prev => new Set([...prev, id]));
       try {
