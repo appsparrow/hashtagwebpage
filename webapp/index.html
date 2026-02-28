@@ -351,45 +351,30 @@ function slugify(name, city) {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-// ── GitHub API deploy (browser-native, no server needed) ─────────────────
+// ── Deploy via Supabase Edge Function (avoids browser CORS issues with GitHub API) ──
 async function deployViaGitHub(slug, html, settings) {
-  const { githubOwner, githubRepo, githubToken, cfPagesDomain } = settings;
-  const filePath = `webapp/sites/${slug}/index.html`;
-  const apiUrl   = `https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${filePath}`;
-  const headers  = {
-    "Authorization": `Bearer ${githubToken}`,
-    "Accept":        "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "Content-Type":  "application/json"
-  };
+  const { githubOwner, githubRepo, githubToken, cfPagesDomain, supabaseUrl, supabaseKey } = settings;
 
-  // Get existing file SHA (required if updating an existing file)
-  let sha = null;
-  try {
-    const getRes = await fetch(apiUrl, { headers });
-    if (getRes.ok) { const existing = await getRes.json(); sha = existing.sha; }
-  } catch (_) {}
+  // Edge Function URL — proxies the GitHub Contents API server-side
+  const edgeFnUrl = (supabaseUrl || "").replace(/\/$/, "") + "/functions/v1/deploy-site";
 
-  // Base64-encode the HTML (btoa with UTF-8 support)
-  const content = btoa(unescape(encodeURIComponent(html)));
+  const session = auth.getSession();
+  const bearerToken = session?.access_token || supabaseKey || "";
 
-  const putRes = await fetch(apiUrl, {
-    method: "PUT",
-    headers,
-    body: JSON.stringify({
-      message: `Deploy: ${slug}`,
-      content,
-      ...(sha ? { sha } : {})
-    })
+  const res = await fetch(edgeFnUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Authorization": `Bearer ${bearerToken}`,
+      "apikey":        supabaseKey || "",
+    },
+    body: JSON.stringify({ slug, html, githubOwner, githubRepo, githubToken, cfPagesDomain }),
   });
 
-  if (!putRes.ok) {
-    const err = await putRes.json().catch(() => ({}));
-    throw new Error(err.message || `GitHub API error ${putRes.status}`);
-  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Deploy error ${res.status}`);
 
-  const domain = (cfPagesDomain || "hashtagwebpage.com").replace(/^https?:\/\//, "");
-  return `https://${domain}/${slug}`;
+  return data.url;
 }
 
 function generateSiteHTML(lead, opts = {}) {
