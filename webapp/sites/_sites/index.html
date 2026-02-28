@@ -139,6 +139,10 @@ a{color:inherit;text-decoration:none}
 </div>
 
 <script>
+// ── Hardcoded project config (safe — anon key is public by Supabase design) ──
+const SUPABASE_URL      = "https://scrtgfjleifxldpceyrg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcnRnZmpsZWlmeGxkcGNleXJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTg3ODUsImV4cCI6MjA4Nzc5NDc4NX0.8Tc7JhrNrxASsigkXI1aA4NSuP5fc9Rp4PyPQa2lxY4";
+
 const CATEGORY_COLORS = {
   "Plumber":"#1d4ed8","Electrician":"#7c3aed","Landscaping":"#15803d",
   "House Cleaning":"#0369a1","Roofing":"#b45309","HVAC":"#b91c1c",
@@ -160,8 +164,8 @@ let activeFilter = "all";
 // ── Config ──────────────────────────────────────────────────────────────────
 function getConfig() {
   return {
-    url: localStorage.getItem("hwp_sb_url") || "",
-    key: localStorage.getItem("hwp_sb_key") || ""
+    url: SUPABASE_URL || localStorage.getItem("hwp_sb_url") || "",
+    key: SUPABASE_ANON_KEY || localStorage.getItem("hwp_sb_key") || ""
   };
 }
 function saveConfig() {
@@ -305,6 +309,7 @@ function toast(msg) {
 // ── Init ─────────────────────────────────────────────────────────────────────
 const cfg = getConfig();
 if (cfg.url && cfg.key) {
+  // Auto-load — no config needed when constants are hardcoded
   loadData();
 } else {
   document.getElementById("content").innerHTML = "";
