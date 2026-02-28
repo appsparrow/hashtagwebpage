@@ -478,110 +478,92 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
   </div>
 </div>` : "";
 
-  const surveySection = !siteVisible ? `<!-- NOT INTERESTED SURVEY — HashtagWebpage.com -->
+  const surveySection = !siteVisible ? `<!-- FEEDBACK WIDGET — HashtagWebpage.com -->
 <style>
-.survey-section{background:#f8fafc;padding:60px 24px;text-align:center}
-.survey-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:40px 32px;max-width:520px;margin:0 auto}
-.survey-title{font-size:1.3rem;font-weight:800;color:#111827;margin-bottom:8px}
-.survey-subtitle{font-size:.95rem;color:#6b7280;margin-bottom:28px}
-.survey-options{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;text-align:left}
-.survey-radio{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:border-color .2s,background .2s}
-.survey-radio:hover{background:#f9fafb;border-color:var(--mid)}
-.survey-radio input[type="radio"]{margin-top:2px;flex-shrink:0;cursor:pointer}
-.survey-radio label{flex:1;cursor:pointer;margin:0}
-.survey-radio input[type="radio"]:checked ~ label{font-weight:600;color:var(--pri)}
-.survey-textarea-wrapper{display:none;margin-top:12px}
-.survey-radio input[type="radio"]:checked + input[type="hidden"] ~ .survey-textarea-wrapper{display:block}
-.survey-textarea{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.9rem;resize:vertical;height:80px}
-.survey-submit{width:100%;padding:13px 24px;background:var(--pri);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .15s}
-.survey-submit:hover{opacity:.88;transform:translateY(-1px)}
-.survey-submit:disabled{opacity:.6;cursor:not-allowed}
-.survey-thankyou{padding:40px 32px;text-align:center;color:var(--pri)}
-.survey-thankyou h3{font-size:1.2rem;font-weight:700;margin-bottom:8px}
+#hwp-widget{position:fixed;bottom:20px;right:20px;z-index:99998;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#hwp-panel{background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.16);padding:20px;width:288px;display:none}
+#hwp-panel.open{display:block}
+.hwp-title{font-size:1rem;font-weight:800;color:#111827;margin:0 0 2px}
+.hwp-sub{font-size:.8rem;color:#6b7280;margin:0 0 14px}
+.hwp-actions{display:flex;flex-direction:column;gap:7px}
+.hwp-btn{width:100%;padding:11px 14px;border-radius:10px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;text-align:left;transition:opacity .15s,transform .1s;display:block}
+.hwp-btn:hover{opacity:.88;transform:translateX(2px)}
+.hwp-btn-love{background:#f0fdf4;color:#15803d}
+.hwp-btn-get{background:var(--pri,#6366f1);color:#fff;text-decoration:none}
+.hwp-btn-no{background:#fef2f2;color:#dc2626}
+#hwp-reasons{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9}
+#hwp-reasons.open{display:block}
+.hwp-r-title{font-size:.8rem;font-weight:700;color:#374151;margin-bottom:8px}
+.hwp-r-opt{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;margin-bottom:5px;transition:background .15s,border-color .15s}
+.hwp-r-opt:hover{background:#f9fafb;border-color:#c7d2fe}
+.hwp-r-opt input{margin-top:2px;cursor:pointer;flex-shrink:0;accent-color:var(--pri,#6366f1)}
+.hwp-r-opt label{font-size:.8rem;color:#374151;cursor:pointer;line-height:1.4;margin:0}
+.hwp-r-opt input:checked ~ label{font-weight:700;color:var(--pri,#6366f1)}
+#hwp-note{display:none;width:100%;margin-top:6px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.8rem;font-family:inherit;resize:vertical;height:64px;box-sizing:border-box}
+#hwp-note.show{display:block}
+#hwp-remove-btn{width:100%;margin-top:10px;padding:10px;background:var(--pri,#6366f1);color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer;opacity:.45;pointer-events:none}
+#hwp-remove-btn.ready{opacity:1;pointer-events:auto}
+#hwp-done{display:none;text-align:center;padding:4px 0}
+#hwp-done strong{display:block;font-size:.95rem;color:#15803d;margin-bottom:2px}
+#hwp-done span{font-size:.78rem;color:#6b7280}
+#hwp-toggle-btn{background:var(--pri,#6366f1);color:#fff;border:none;border-radius:100px;padding:11px 18px;font-size:.84rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.35);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;gap:7px}
+#hwp-toggle-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(99,102,241,.45)}
 </style>
-<div class="survey-section">
-  <div class="survey-card">
-    <div id="survey-form-wrapper">
-      <div class="survey-title">Not the right fit?</div>
-      <div class="survey-subtitle">Help us improve — we'll remove this preview immediately.</div>
-      <form id="survey-form" class="survey-options">
-        <div class="survey-radio">
-          <input type="radio" id="reason-timing" name="reason" value="timing" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-timing">The timing isn\'t right — follow up in a few months</label>
-        </div>
-        <div class="survey-radio">
-          <input type="radio" id="reason-competitor" name="reason" value="competitor" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-competitor">I already have someone working on my site</label>
-        </div>
-        <div class="survey-radio">
-          <input type="radio" id="reason-no-need" name="reason" value="no_need" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-no-need">I don\'t think my business needs a website</label>
-        </div>
-        <div class="survey-radio">
-          <input type="radio" id="reason-other" name="reason" value="other" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-other">Other</label>
-          <div class="survey-textarea-wrapper">
-            <textarea name="note" class="survey-textarea" placeholder="Tell us more..."></textarea>
-          </div>
-        </div>
-      </form>
-      <button id="survey-submit" class="survey-submit" disabled>Remove This Preview →</button>
+<div id="hwp-widget">
+  <div id="hwp-panel">
+    <div id="hwp-main">
+      <p class="hwp-title">What do you think? 👋</p>
+      <p class="hwp-sub">This is a free preview — built just for you.</p>
+      <div class="hwp-actions">
+        <button class="hwp-btn hwp-btn-love" onclick="hwpLove()">😍 &nbsp;I love it!</button>
+        <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="hwp-btn hwp-btn-get">💳 &nbsp;How do I get this?</a>
+        <button class="hwp-btn hwp-btn-no" onclick="hwpShowReasons()">✕ &nbsp;Not for me</button>
+      </div>
+      <div id="hwp-reasons">
+        <div class="hwp-r-title">What\'s holding you back?</div>
+        <div class="hwp-r-opt"><input type="radio" id="r1" name="hwpr" value="timing" onchange="hwpPick(this)"><label for="r1">Timing isn\'t right — maybe in a few months</label></div>
+        <div class="hwp-r-opt"><input type="radio" id="r2" name="hwpr" value="competitor" onchange="hwpPick(this)"><label for="r2">I already have someone building my site</label></div>
+        <div class="hwp-r-opt"><input type="radio" id="r3" name="hwpr" value="no_need" onchange="hwpPick(this)"><label for="r3">I don\'t think my business needs a website</label></div>
+        <div class="hwp-r-opt"><input type="radio" id="r4" name="hwpr" value="other" onchange="hwpPick(this)"><label for="r4">Other reason</label></div>
+        <textarea id="hwp-note" placeholder="Tell us more (optional)..."></textarea>
+        <button id="hwp-remove-btn" onclick="hwpSubmit()">Remove This Preview →</button>
+      </div>
     </div>
-    <div id="survey-thankyou" style="display:none" class="survey-thankyou">
-      <h3>Thank you!</h3>
-      <p>We\'ve received your feedback and will remove this preview within 24 hours.</p>
+    <div id="hwp-done">
+      <strong>✅ Got it, thank you!</strong>
+      <span>We\'ll take this down within 24 hours.</span>
     </div>
   </div>
+  <button id="hwp-toggle-btn" onclick="hwpToggle()"><span>💬</span><span>What do you think?</span></button>
 </div>
 <script>
 (function(){
-  var form = document.getElementById('survey-form');
-  var submitBtn = document.getElementById('survey-submit');
-  var formWrapper = document.getElementById('survey-form-wrapper');
-  var thankYou = document.getElementById('survey-thankyou');
-
-  form.addEventListener('change', function() {
-    var checked = form.querySelector('input[type="radio"]:checked');
-    submitBtn.disabled = !checked;
-  });
-
-  submitBtn.addEventListener('click', function() {
-    var checked = form.querySelector('input[type="radio"]:checked');
-    if (!checked) return;
-
-    var reason = checked.value;
-    var note = form.querySelector('textarea[name="note"]')?.value || '';
-    var slug = window.location.pathname.replace(/\\\\/g, '');
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Removing...';
-
-    fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: slug, reason: reason, note: note })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success || data.ok) {
-        formWrapper.style.display = 'none';
-        thankYou.style.display = 'block';
-      } else {
-        alert('Error: ' + (data.error || 'Failed to submit'));
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Remove This Preview →';
-      }
-    })
-    .catch(function(err) {
-      alert('Error: ' + err.message);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Remove This Preview →';
-    });
-  });
+  var open=false;
+  window.hwpToggle=function(){open=!open;document.getElementById('hwp-panel').classList.toggle('open',open);};
+  window.hwpLove=function(){
+    var b=document.getElementById('hwp-toggle-btn');
+    b.innerHTML='<span>😍</span><span>Glad you love it!</span>';
+    document.getElementById('hwp-panel').classList.remove('open');open=false;
+  };
+  window.hwpShowReasons=function(){document.getElementById('hwp-reasons').classList.toggle('open');};
+  window.hwpPick=function(el){
+    document.getElementById('hwp-remove-btn').classList.add('ready');
+    document.getElementById('hwp-note').className=el.value==='other'?'show':'';
+  };
+  window.hwpSubmit=function(){
+    var checked=document.querySelector('input[name="hwpr"]:checked');
+    if(!checked)return;
+    var btn=document.getElementById('hwp-remove-btn');
+    btn.textContent='Sending...';btn.classList.remove('ready');
+    var slug=window.location.pathname.replace(/\//g,'');
+    fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({slug:slug,reason:checked.value,note:document.getElementById('hwp-note').value||''})
+    }).then(function(){
+      document.getElementById('hwp-main').style.display='none';
+      document.getElementById('hwp-done').style.display='block';
+    }).catch(function(){btn.textContent='Remove This Preview →';btn.classList.add('ready');});
+  };
 })();
 <\/script>
 ` : "";
