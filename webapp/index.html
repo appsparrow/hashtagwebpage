@@ -1722,7 +1722,18 @@ function FindLeadsView({ leads, onAddLeads }) {
         body: JSON.stringify({ textQuery: `${category} in ${city.trim()}`, maxResultCount: 20 })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || `Places API error ${res.status}`);
+      if (!res.ok) {
+        const msg = data.error?.message || `Places API error ${res.status}`;
+        const status = data.error?.status || "";
+        console.error("[Places API] full error:", JSON.stringify(data.error));
+        if (res.status === 400) {
+          throw new Error(`API key issue (400): ${msg} — Make sure "Places API (New)" is enabled in Google Cloud Console (it's different from the old Places API). Check: console.cloud.google.com → APIs & Services → Library → search "Places API (New)"`);
+        }
+        if (res.status === 403) {
+          throw new Error(`API key blocked (403): ${msg} — Check key restrictions or billing in Google Cloud Console.`);
+        }
+        throw new Error(`${status}: ${msg}`);
+      }
 
       const places = (data.places || []).filter(p => !p.websiteUri);
       if (!places.length) {
