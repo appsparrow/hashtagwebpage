@@ -1,108 +1,100 @@
-# HashtagWebpage — Migration Plan: Local → Fully Web
+# HashtagWebpage — Project Plan
 
-## Status: IN PROGRESS
-**Goal:** Remove all local server dependency. Run the entire CRM from any browser, anywhere.
-
----
-
-## What Changed (v0 → v1)
-
-| Component | v0 (local) | v1 (web) |
-|-----------|-----------|---------|
-| CRM App | `localhost:3000` via server.js | Hosted on CF Pages |
-| Google Places | server.js proxy | Direct browser call to Places API (New) |
-| Site Deploy | server.js → CF Direct Upload API | Browser → GitHub API → CF Pages auto-deploys |
-| Send Email | server.js → Resend API | Supabase Edge Function → Resend API |
-| Stripe Webhooks | not implemented | Supabase Edge Function receiver |
-| Supabase | Local Docker on :54321 | Supabase Cloud (free tier) |
-| Assets (logos/heroes) | server.js /assets/ route | CF Pages git-based (no change) |
+## Status: LIVE ✅
+The CRM is fully web-based and deployed. No local server needed.
 
 ---
 
-## Phase 1 — Infrastructure Setup (manual, ~30 min)
-These require terminal/browser actions the user must do:
+## Live URLs
 
-### 1a. Create Supabase Cloud Project
-- Go to supabase.com → New Project
-- Copy Project URL and anon key into CRM Settings
-- Run schema: see `DEPLOYMENT.md`
-
-### 1b. Create second CF Pages project for CRM
-- CF Dashboard → Pages → Create → Connect GitHub → select `hashtagwebpage` repo
-- Root directory: `webapp` (not `webapp/sites`)
-- Build command: (none — static)
-- Output: `webapp`
-- Domain: `app.hashtagwebpage.com` or custom `app.hashtagwebpage.com`
-
-### 1c. Generate GitHub Personal Access Token
-- github.com → Settings → Developer Settings → Personal Access Tokens → Fine-grained
-- Repository: `hashtagwebpage`
-- Permissions: **Contents: Read & Write**
-- Copy token → CRM Settings → GitHub Token
-
-### 1d. Restrict Google Places API key
-- Google Cloud Console → Credentials → edit your API key
-- HTTP referrers: `https://app.hashtagwebpage.com/*` and `https://app.hashtagwebpage.com/*`
-- This lets the browser call Places API directly without a proxy
+| URL | What it is |
+|-----|-----------|
+| `https://hashtagwebpage.com` | Public homepage (landing page) |
+| `https://hashtagwebpage.com/_sites/` | Admin: list of all published sites |
+| `https://hashtagwebpage.com/_firstdraft/` | Original homepage (saved for reference) |
+| `https://hashtagwebpage.com/{slug}/` | Individual client websites |
+| `https://app.hashtagwebpage.com` | CRM admin app (login required) |
+| `https://144f4219.hashtagwebpage-app.pages.dev/` | CF Pages preview URL (always works) |
 
 ---
 
-## Phase 2 — Deploy Edge Functions (terminal, ~10 min)
-See `EDGE_FUNCTIONS.md` for full instructions.
+## What Was Built
 
-```bash
-# Install Supabase CLI (once)
-npm install -g supabase
+### CRM App (`webapp/index.html`)
+- React + Tailwind, single HTML file, no build step
+- Supabase Auth login (email + password)
+- **Dashboard** — stats, funnel, recent activity
+- **Find Leads** — Google Places API (New) direct browser call
+- **Pipeline** — Kanban view with Generate Site, Send Preview, Archive actions
+- **Published Sites** — sidebar view showing all sites with search + status filter
+- **Settings** — API keys, GitHub config, Supabase config
 
-# Login
-supabase login
+### Site Generator
+- `generateSiteHTML()` builds full client website HTML
+- Open Graph meta tags for WhatsApp/SMS link previews
+- Category hero images + logos with 3-level fallback chain
+- Deploy via Supabase Edge Function → GitHub API → CF Pages auto-deploys
 
-# Link to your cloud project
-supabase link --project-ref YOUR_PROJECT_REF
+### Supabase Edge Functions
+- `send-email` — proxies Resend API for HTML emails
+- `stripe-webhook` — verifies Stripe sig, promotes lead to customer
+- `deploy-site` — proxies GitHub Contents API (fixes browser CORS issue)
 
-# Set secrets (keys stay off client)
-supabase secrets set RESEND_API_KEY=re_xxxx
-supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_xxxx
+### Public Pages
+- `hashtagwebpage.com` — "We build your website free, you pay if you love it" landing page
+- `hashtagwebpage.com/_sites/` — admin directory of all published sites (needs RLS fix)
+- `hashtagwebpage.com/_firstdraft/` — original marketing homepage (archived)
 
-# Deploy both functions
-supabase functions deploy send-email
-supabase functions deploy stripe-webhook
+---
+
+## Architecture Summary
+
+```
+Browser (CRM at app.hashtagwebpage.com)
+    │
+    ├── Google Places API (direct CORS call)
+    ├── Supabase DB (leads table, RLS)
+    ├── Supabase Auth (email/password login)
+    └── Supabase Edge Functions:
+            ├── /functions/v1/send-email      → Resend API
+            ├── /functions/v1/deploy-site     → GitHub API → CF Pages
+            └── /functions/v1/stripe-webhook  ← Stripe events
+
+CF Pages (hashtagwebpage.com)
+    ├── /                 ← landing page
+    ├── /_sites/          ← admin sites directory
+    ├── /_firstdraft/     ← archived homepage
+    ├── /assets/          ← logos, hero images
+    └── /{slug}/          ← client websites
 ```
 
 ---
 
-## Phase 3 — CRM Settings Update
-Once deployed, update these in the CRM Settings panel:
+## Pending Actions
 
-| Setting | Value |
-|---------|-------|
-| Supabase URL | `https://YOUR_REF.supabase.co` |
-| Supabase Anon Key | from Supabase dashboard |
-| GitHub Owner | your GitHub username |
-| GitHub Repo | `hashtagwebpage` |
-| GitHub Token | fine-grained token with Contents:Write |
-| CF Pages Domain | `hashtagwebpage.com` |
-| CF Project Name | `hashtagwebpage` |
-| Google API Key | restricted to app domain |
+1. **Deploy `deploy-site` Edge Function** — `supabase functions deploy deploy-site --no-verify-jwt`
+2. **Fix Supabase RLS** — run SQL in Supabase Dashboard (see DEPLOYMENT.md)
+3. **Fix `app.hashtagwebpage.com` custom domain** — add in CF Pages Dashboard → Custom Domains, check for conflicting Worker routes
+4. **Stripe payments** — add Payment Links to Send Preview modal (next sprint)
 
 ---
 
-## Phase 4 — Stripe Integration (next sprint)
-See `STRIPE.md` for full plan.
-- Stripe Payment Links (no code) for $49/mo and $297 buyout
-- Stripe webhook → `supabase/functions/stripe-webhook` → updates lead to `customer`
-- CRM shows real-time payment status
+## Next Sprint: Stripe Payments
+
+- Add `stripeMonthlyUrl` ($49/mo) and `stripeOneTimeUrl` ($297) to Settings
+- Add payment buttons to the Send Preview modal
+- Auto-promote lead to `customer` via stripe-webhook (code already built)
 
 ---
 
-## Cost at Scale (all free tier)
+## Cost (all free tier, $0 until real scale)
 
 | Service | Free limit | Our usage |
 |---------|-----------|-----------|
 | CF Pages | Unlimited requests | ✅ |
 | Supabase DB | 500MB, 50K MAU | ✅ |
 | Supabase Edge Functions | 500K calls/month | ~50/day max |
-| GitHub API | 5K calls/hour (authenticated) | ~10/day |
+| GitHub API | 5K calls/hour | ~10/day |
 | Resend | 3K emails/month | ~20/day max |
 | Google Places | $200 credit/month | ~50 searches/day |
-| **Total cost** | | **$0** until real scale |
+| **Total** | | **$0** |

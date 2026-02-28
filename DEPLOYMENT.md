@@ -1,167 +1,142 @@
 # Deployment Guide — HashtagWebpage
 
-Complete step-by-step to go from local → fully web-hosted.
+## Current Status
+
+| Component | Status | URL |
+|-----------|--------|-----|
+| Public site | ✅ Live | `hashtagwebpage.com` |
+| CRM App | ✅ Live | `app.hashtagwebpage.com` / `hashtagwebpage-app.pages.dev` |
+| Supabase DB | ✅ Live | `scrtgfjleifxldpceyrg.supabase.co` |
+| send-email Edge Fn | ✅ Deployed | `/functions/v1/send-email` |
+| deploy-site Edge Fn | ⚠️ Deploy needed | `/functions/v1/deploy-site` |
+| stripe-webhook Edge Fn | ✅ Deployed | `/functions/v1/stripe-webhook` |
+| RLS policy fix | ⚠️ SQL needed | see below |
 
 ---
 
-## Step 1 — Supabase Cloud (15 min)
+## Pending Actions
 
-### 1a. Create project
-1. Go to [supabase.com](https://supabase.com) → New Project
-2. Name: `hashtagwebpage`
-3. Database password: save it somewhere safe
-4. Region: US East (or closest to you)
-
-### 1b. Run schema
-Go to SQL Editor in Supabase dashboard and run:
-
-```sql
-create table if not exists leads (
-  id           text primary key,
-  name         text,
-  category     text,
-  city         text,
-  phone        text,
-  address      text,
-  email        text,
-  rating       numeric,
-  review_count integer,
-  stage        text default 'new',
-  preview_url  text,
-  maps_url     text,
-  found_at     bigint,
-  sent_at      bigint,
-  follow_up_at bigint,
-  converted_at bigint,
-  notes        text,
-  created_at   timestamptz default now(),
-  updated_at   timestamptz default now()
-);
-
-alter table leads enable row level security;
-create policy "allow all" on leads for all using (true);
+### 1. Deploy `deploy-site` Edge Function
+```bash
+supabase link --project-ref scrtgfjleifxldpceyrg
+supabase functions deploy deploy-site --no-verify-jwt
 ```
 
-### 1c. Copy credentials
-- Project URL: `https://xxxx.supabase.co` (from Settings → API)
-- Anon Key: `eyJhbGci...` (from Settings → API)
-- Service Role Key: (for edge functions only — keep secret)
+### 2. Fix Supabase RLS Policy
+Run in Supabase Dashboard → SQL Editor:
+```sql
+drop policy if exists "allow all" on leads;
+
+create policy "authenticated full access" on leads
+  for all to authenticated using (true) with check (true);
+
+create policy "anon read published sites" on leads
+  for select to anon using (preview_url is not null);
+```
+This fixes `hashtagwebpage.com/_sites/` showing 0 results.
+
+### 3. Fix `app.hashtagwebpage.com` Custom Domain
+- CF Dashboard → Pages → `hashtagwebpage-app` project → Custom Domains
+- Add `app.hashtagwebpage.com`
+- Check for any Worker route intercepting `app.hashtagwebpage.com/*` and remove it
 
 ---
 
-## Step 2 — GitHub Personal Access Token (5 min)
+## Project Credentials
 
-1. Go to github.com → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens
-2. Click "Generate new token"
-3. Name: `HashtagWebpage Deploy`
-4. Expiration: 1 year (set a reminder to rotate)
-5. Repository access: Only select repositories → `hashtagwebpage`
-6. Permissions:
-   - **Repository → Contents: Read and Write** ← required for deploy
-7. Copy the token (starts with `github_pat_` or `ghp_`)
-
----
-
-## Step 3 — Restrict Google Places API Key (5 min)
-
-1. [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials
-2. Click your Places API key → Edit
-3. Under "Application restrictions" → HTTP referrers
-4. Add:
-   - `https://app.hashtagwebpage.com/*`
-   - `https://app.hashtagwebpage.com/*`
-   - `http://localhost:3000/*` (keep for local dev)
-5. Save
-
-This allows the browser CRM to call Places API directly without a server proxy.
+| Item | Value |
+|------|-------|
+| Supabase Project Ref | `scrtgfjleifxldpceyrg` |
+| Supabase URL | `https://scrtgfjleifxldpceyrg.supabase.co` |
+| Supabase Anon Key | `sb_publishable_gRPK_XsqaoA7YDiIITk9Vg_WmpxW5DT` |
+| Resend API Key | `re_SyYHPAjP_KryYbv4Zp4tqWxUTauxVuSZ3` |
+| From Email | `contact@hashtagwebpage.com` |
+| CF Pages domain (sites) | `hashtagwebpage.com` |
+| CF Pages domain (CRM) | `app.hashtagwebpage.com` |
+| GitHub Repo | `appsparrow/hashtagwebpage` |
 
 ---
 
-## Step 4 — Deploy CRM to CF Pages (10 min)
+## Fresh Setup (if starting from scratch)
 
-### Create a new CF Pages project for the CRM app:
-1. Cloudflare Dashboard → Pages → Create a Project → Connect to Git
-2. Select repository: `hashtagwebpage`
-3. Project name: `hashtagwebpage-app` (or `app-hashtagwebpage`)
-4. Production branch: `main`
-5. **Root directory:** `webapp` ← important, set this
-6. **Build command:** (leave empty)
-7. **Build output directory:** (leave empty or set to `webapp`)
-8. Deploy!
+### Step 1 — Supabase Cloud (~15 min)
 
-The CRM will be at `hashtagwebpage-app.pages.dev` — add a custom domain in CF Pages settings (`app.hashtagwebpage.com`).
+1. supabase.com → New Project → name: `hashtagwebpage`
+2. SQL Editor → run schema (see TECH.md)
+3. Copy Project URL and anon key
 
-> Note: Your existing CF Pages project (`hashtagwebpage`) keeps serving client sites from `webapp/sites/` — don't change it.
+### Step 2 — GitHub Personal Access Token (~5 min)
 
----
+1. github.com → Settings → Developer Settings → Personal Access Tokens → Fine-grained
+2. Repository: `hashtagwebpage`, Permissions: **Contents: Read & Write**
+3. Copy token (starts `github_pat_` or `ghp_`)
 
-## Step 5 — Deploy Supabase Edge Functions (10 min)
+### Step 3 — Google Places API Key (~5 min)
+
+1. Google Cloud Console → APIs & Services → Credentials → edit your key
+2. HTTP referrers: `https://app.hashtagwebpage.com/*`
+3. This allows direct browser → Places API calls
+
+### Step 4 — CF Pages: Sites project
+
+Already configured. Serves `webapp/sites/` at `hashtagwebpage.com`.
+Do not change root directory — leave as `webapp/sites`.
+
+### Step 5 — CF Pages: CRM App project
+
+1. CF Dashboard → Pages → Create → Connect GitHub → `hashtagwebpage` repo
+2. Project name: `hashtagwebpage-app`
+3. **Root directory:** `webapp`
+4. **Build command:** (leave empty)
+5. Deploy → add custom domain `app.hashtagwebpage.com`
+
+### Step 6 — Deploy Supabase Edge Functions (~10 min)
 
 ```bash
-# In your terminal, from the repo root:
 npm install -g supabase
 supabase login
-supabase link --project-ref YOUR_PROJECT_REF
+supabase link --project-ref scrtgfjleifxldpceyrg
 
 supabase secrets set RESEND_API_KEY=re_SyYHPAjP_KryYbv4Zp4tqWxUTauxVuSZ3
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcnRnZmpsZWlmeGxkcGNleXJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTg3ODUsImV4cCI6MjA4Nzc5NDc4NX0.8Tc7JhrNrxASsigkXI1aA4NSuP5fc9Rp4PyPQa2lxY4
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<service_role_key_from_dashboard>
+supabase secrets set STRIPE_WEBHOOK_SECRET=<from_stripe_when_ready>
 
 supabase functions deploy send-email --no-verify-jwt
+supabase functions deploy deploy-site --no-verify-jwt
 supabase functions deploy stripe-webhook --no-verify-jwt
 ```
 
----
+### Step 7 — CRM Settings
 
-## Step 6 — Configure CRM Settings
-
-Open the CRM at your new URL and go to Settings. Fill in:
+Open `app.hashtagwebpage.com` → Settings → fill in:
 
 | Field | Value |
 |-------|-------|
-| Supabase URL | `https://xxxx.supabase.co` |
-| Supabase Anon Key | `eyJhbGci...` |
-| GitHub Owner | your GitHub username |
-| GitHub Repo | `hashtagwebpage` |
-| GitHub Token | `github_pat_xxxx` |
-| CF Pages Domain | `hashtagwebpage.com` |
-| CF Project Name | `hashtagwebpage` |
 | Google API Key | your restricted key |
-| Resend API Key | `re_xxxx` (optional — edge fn uses it server-side) |
+| CF Pages Domain | `hashtagwebpage.com` |
+| GitHub Owner | `appsparrow` |
+| GitHub Repo | `hashtagwebpage` |
+| GitHub Token | your `github_pat_xxx` token |
+| Resend API Key | `re_SyYHPAjP_KryYbv4Zp4tqWxUTauxVuSZ3` |
+| From Email | `contact@hashtagwebpage.com` |
 
----
+Supabase URL and anon key are hardcoded in `index.html` — no need to enter them.
 
-## Step 7 — Verify Everything Works
+### Step 8 — Verify
 
-1. ✅ **Search** — search for a category + city, should return leads
-2. ✅ **Generate Site** — pick a lead → Generate Site → check GitHub for new commit
-3. ✅ **Send Email** — add email to lead → Send Preview → check inbox
-4. ✅ **Published Sites** — visit `/_sites/` on your CF Pages domain
-
----
-
-## Migrate Existing Leads (optional)
-
-If you have leads in local Supabase, export them:
-
-```sql
--- Run in local pgAdmin (localhost:5050)
-COPY leads TO '/tmp/leads.csv' CSV HEADER;
-```
-
-Then import in cloud Supabase SQL Editor:
-```sql
--- Paste CSV data or use Supabase dashboard → Table Editor → Import CSV
-```
+1. ✅ Login to CRM → Dashboard loads
+2. ✅ Find Leads → search returns results
+3. ✅ Pipeline → Generate Site → check GitHub for new commit, site live in ~60s
+4. ✅ Send Preview → email arrives in inbox
+5. ✅ `hashtagwebpage.com/_sites/` → shows published sites list
 
 ---
 
 ## Local Development (still works)
 
-`server.js` is kept for reference. To run locally:
 ```bash
 node webapp/server.js
 # CRM at http://localhost:3000
 ```
 
-Local server still proxies Google Places and handles deploy.
-Or set your cloud Supabase URL/key in Settings and it works fully web even from localhost.
+Set cloud Supabase URL/key in Settings and it works fully web even from localhost.
