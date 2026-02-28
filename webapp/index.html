@@ -2097,8 +2097,6 @@ function App() {
   const [toasts, setToasts]           = React.useState([]);
   const [syncStatus, setSyncStatus]   = React.useState("idle"); // idle | syncing | ok | error
 
-  if (!authed) return <LoginScreen onLogin={() => { setSettings(store.getSettings()); setAuthed(true); }} />;
-
   const addToast = (msg, type = "success") => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, msg, type }]);
@@ -2161,6 +2159,8 @@ function App() {
     const iv = setInterval(poll, 30000);
     return () => clearInterval(iv);
   }, []);
+
+  if (!authed) return <LoginScreen onLogin={() => { setSettings(store.getSettings()); setAuthed(true); }} />;
 
   // ── Main action handler ──────────────────────────────────────
   const handleAction = async (id, action) => {
