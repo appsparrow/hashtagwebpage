@@ -428,18 +428,10 @@ function generateSiteHTML(lead, opts = {}) {
   const mapsQuery = encodeURIComponent((address || name) + ", " + city);
   const mapsEmbedUrl = `https://www.google.com/maps?q=${mapsQuery}&output=embed`;
 
-  return `<!DOCTYPE html>
-<!-- HashtagWebpage.com — Professional Website for ${name} -->
-<!-- Built by HashtagWebpage · hashtagwebpage.com -->
-<!-- Unauthorized copying or redistribution is prohibited -->
-<html lang="en">
-<head>
-<!-- HashtagWebpage · ${category} Website · ${city} -->
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>${name} | ${category} in ${city}</title>
-<meta name="description" content="${name} — trusted ${category.toLowerCase()} serving ${city}. Call today for a free estimate. Licensed, insured &amp; highly rated."/>
-${!siteVisible ? '<meta name="robots" content="noindex,nofollow"/>' : ""}
-${siteUrl ? `<!-- Open Graph: WhatsApp / iMessage / Telegram / Slack previews -->
+  // Extract nested template literals to prevent Babel syntax errors
+  const robotsMeta = !siteVisible ? '<meta name="robots" content="noindex,nofollow"/>' : "";
+
+  const ogMeta = siteUrl ? `<!-- Open Graph: WhatsApp / iMessage / Telegram / Slack previews -->
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="${siteUrl}"/>
 <meta property="og:site_name" content="${name}"/>
@@ -452,7 +444,164 @@ ${siteUrl ? `<!-- Open Graph: WhatsApp / iMessage / Telegram / Slack previews --
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${name} | ${category} in ${city}"/>
 <meta name="twitter:description" content="${name} — trusted ${category.toLowerCase()} serving ${city}."/>
-<meta name="twitter:image" content="${ogImage}"/>` : ""}
+<meta name="twitter:image" content="${ogImage}"/>` : "";
+
+  const previewBarCSS = !siteVisible ? `
+.preview-bar{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);border-bottom:2px solid #6366f1;padding:0;font-family:'Inter',system-ui,sans-serif}
+.preview-bar-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
+.preview-bar-left{display:flex;align-items:center;gap:10px}
+.preview-bar-badge{background:#6366f1;color:#fff;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:100px;flex-shrink:0}
+.preview-bar-msg{color:#e2e8f0;font-size:.82rem;font-weight:500}
+.preview-bar-msg strong{color:#fff}
+.preview-bar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.preview-bar-pay{background:#6366f1;color:#fff;padding:7px 16px;border-radius:100px;font-size:.78rem;font-weight:700;text-decoration:none;transition:background .15s;white-space:nowrap}
+.preview-bar-pay:hover{background:#4f46e5}
+.preview-bar-dismiss{color:#475569;font-size:.75rem;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 8px;border-radius:6px;transition:color .15s}
+.preview-bar-dismiss:hover{color:#94a3b8}
+body{padding-top:52px}
+.nav{top:52px}
+/* Disable text selection & right-click on preview sites */
+body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
+` : "";
+
+  const previewBannerHTML = !siteVisible ? `<!-- PREVIEW BANNER — HashtagWebpage.com -->
+<div class="preview-bar" id="hwp-preview-bar">
+  <div class="preview-bar-inner">
+    <div class="preview-bar-left">
+      <span class="preview-bar-badge">Preview Only</span>
+      <span class="preview-bar-msg"><strong>This is a free preview</strong> built for ${name}. Like what you see? Keep it live for just $49/mo.</span>
+    </div>
+    <div class="preview-bar-actions">
+      <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="preview-bar-pay">💳 Keep This Site →</a>
+      <button class="preview-bar-dismiss" onclick="document.getElementById('hwp-preview-bar').style.display='none';document.body.style.paddingTop='0';document.querySelector('.nav').style.top='0'">✕ dismiss</button>
+    </div>
+  </div>
+</div>` : "";
+
+  const surveySection = !siteVisible ? `<!-- NOT INTERESTED SURVEY — HashtagWebpage.com -->
+<style>
+.survey-section{background:#f8fafc;padding:60px 24px;text-align:center}
+.survey-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:40px 32px;max-width:520px;margin:0 auto}
+.survey-title{font-size:1.3rem;font-weight:800;color:#111827;margin-bottom:8px}
+.survey-subtitle{font-size:.95rem;color:#6b7280;margin-bottom:28px}
+.survey-options{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;text-align:left}
+.survey-radio{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:border-color .2s,background .2s}
+.survey-radio:hover{background:#f9fafb;border-color:var(--mid)}
+.survey-radio input[type="radio"]{margin-top:2px;flex-shrink:0;cursor:pointer}
+.survey-radio label{flex:1;cursor:pointer;margin:0}
+.survey-radio input[type="radio"]:checked ~ label{font-weight:600;color:var(--pri)}
+.survey-textarea-wrapper{display:none;margin-top:12px}
+.survey-radio input[type="radio"]:checked + input[type="hidden"] ~ .survey-textarea-wrapper{display:block}
+.survey-textarea{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.9rem;resize:vertical;height:80px}
+.survey-submit{width:100%;padding:13px 24px;background:var(--pri);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .15s}
+.survey-submit:hover{opacity:.88;transform:translateY(-1px)}
+.survey-submit:disabled{opacity:.6;cursor:not-allowed}
+.survey-thankyou{padding:40px 32px;text-align:center;color:var(--pri)}
+.survey-thankyou h3{font-size:1.2rem;font-weight:700;margin-bottom:8px}
+</style>
+<div class="survey-section">
+  <div class="survey-card">
+    <div id="survey-form-wrapper">
+      <div class="survey-title">Not the right fit?</div>
+      <div class="survey-subtitle">Help us improve — we'll remove this preview immediately.</div>
+      <form id="survey-form" class="survey-options">
+        <div class="survey-radio">
+          <input type="radio" id="reason-timing" name="reason" value="timing" />
+          <input type="hidden" class="survey-textarea-wrapper" />
+          <label for="reason-timing">The timing isn\'t right — follow up in a few months</label>
+        </div>
+        <div class="survey-radio">
+          <input type="radio" id="reason-competitor" name="reason" value="competitor" />
+          <input type="hidden" class="survey-textarea-wrapper" />
+          <label for="reason-competitor">I already have someone working on my site</label>
+        </div>
+        <div class="survey-radio">
+          <input type="radio" id="reason-no-need" name="reason" value="no_need" />
+          <input type="hidden" class="survey-textarea-wrapper" />
+          <label for="reason-no-need">I don\'t think my business needs a website</label>
+        </div>
+        <div class="survey-radio">
+          <input type="radio" id="reason-other" name="reason" value="other" />
+          <input type="hidden" class="survey-textarea-wrapper" />
+          <label for="reason-other">Other</label>
+          <div class="survey-textarea-wrapper">
+            <textarea name="note" class="survey-textarea" placeholder="Tell us more..."></textarea>
+          </div>
+        </div>
+      </form>
+      <button id="survey-submit" class="survey-submit" disabled>Remove This Preview →</button>
+    </div>
+    <div id="survey-thankyou" style="display:none" class="survey-thankyou">
+      <h3>Thank you!</h3>
+      <p>We\'ve received your feedback and will remove this preview within 24 hours.</p>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var form = document.getElementById('survey-form');
+  var submitBtn = document.getElementById('survey-submit');
+  var formWrapper = document.getElementById('survey-form-wrapper');
+  var thankYou = document.getElementById('survey-thankyou');
+
+  form.addEventListener('change', function() {
+    var checked = form.querySelector('input[type="radio"]:checked');
+    submitBtn.disabled = !checked;
+  });
+
+  submitBtn.addEventListener('click', function() {
+    var checked = form.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+
+    var reason = checked.value;
+    var note = form.querySelector('textarea[name="note"]')?.value || '';
+    var slug = window.location.pathname.replace(/\\\\/g, '');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Removing...';
+
+    fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: slug, reason: reason, note: note })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success || data.ok) {
+        formWrapper.style.display = 'none';
+        thankYou.style.display = 'block';
+      } else {
+        alert('Error: ' + (data.error || 'Failed to submit'));
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Remove This Preview →';
+      }
+    })
+    .catch(function(err) {
+      alert('Error: ' + err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Remove This Preview →';
+    });
+  });
+})();
+</script>
+` : "";
+
+  const previewProtectionScript = !siteVisible ? `/* HashtagWebpage preview protection */
+  document.addEventListener("contextmenu",function(e){e.preventDefault();});
+  document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="s"||e.key==="a")){e.preventDefault();}});` : "";
+
+  return `<!DOCTYPE html>
+<!-- HashtagWebpage.com — Professional Website for ${name} -->
+<!-- Built by HashtagWebpage · hashtagwebpage.com -->
+<!-- Unauthorized copying or redistribution is prohibited -->
+<html lang="en">
+<head>
+<!-- HashtagWebpage · ${category} Website · ${city} -->
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>${name} | ${category} in ${city}</title>
+<meta name="description" content="${name} — trusted ${category.toLowerCase()} serving ${city}. Call today for a free estimate. Licensed, insured &amp; highly rated."/>
+${robotsMeta}
+${ogMeta}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -542,23 +691,7 @@ footer a{color:#94a3b8;text-decoration:none;transition:color .15s}
 footer a:hover{color:#fff}
 .footer-brand{font-size:.92rem;font-weight:800;color:#e2e8f0;margin-bottom:6px}
 /* PREVIEW BANNER */
-${!siteVisible ? `
-.preview-bar{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);border-bottom:2px solid #6366f1;padding:0;font-family:'Inter',system-ui,sans-serif}
-.preview-bar-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
-.preview-bar-left{display:flex;align-items:center;gap:10px}
-.preview-bar-badge{background:#6366f1;color:#fff;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:100px;flex-shrink:0}
-.preview-bar-msg{color:#e2e8f0;font-size:.82rem;font-weight:500}
-.preview-bar-msg strong{color:#fff}
-.preview-bar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.preview-bar-pay{background:#6366f1;color:#fff;padding:7px 16px;border-radius:100px;font-size:.78rem;font-weight:700;text-decoration:none;transition:background .15s;white-space:nowrap}
-.preview-bar-pay:hover{background:#4f46e5}
-.preview-bar-dismiss{color:#475569;font-size:.75rem;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 8px;border-radius:6px;transition:color .15s}
-.preview-bar-dismiss:hover{color:#94a3b8}
-body{padding-top:52px}
-.nav{top:52px}
-/* Disable text selection & right-click on preview sites */
-body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
-` : ""}
+${previewBarCSS}
 /* RESPONSIVE */
 @media(max-width:640px){
   .hero{padding:70px 20px 80px}
@@ -572,19 +705,7 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 <!-- HashtagWebpage · hashtagwebpage.com · All rights reserved -->
 <body>
 
-${!siteVisible ? `<!-- PREVIEW BANNER — HashtagWebpage.com -->
-<div class="preview-bar" id="hwp-preview-bar">
-  <div class="preview-bar-inner">
-    <div class="preview-bar-left">
-      <span class="preview-bar-badge">Preview Only</span>
-      <span class="preview-bar-msg"><strong>This is a free preview</strong> built for ${name}. Like what you see? Keep it live for just $49/mo.</span>
-    </div>
-    <div class="preview-bar-actions">
-      <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="preview-bar-pay">💳 Keep This Site →</a>
-      <button class="preview-bar-dismiss" onclick="document.getElementById('hwp-preview-bar').style.display='none';document.body.style.paddingTop='0';document.querySelector('.nav').style.top='0'">✕ dismiss</button>
-    </div>
-  </div>
-</div>` : ""}
+${previewBannerHTML}
 
 <!-- NAV — Built by HashtagWebpage.com -->
 <nav class="nav">
@@ -724,113 +845,7 @@ ${hasRating ? `<!-- RATING -->
   <p style="margin-top:12px;opacity:.55">© ${new Date().getFullYear()} ${name} &nbsp;·&nbsp; Website by <a href="https://hashtagwebpage.com" target="_blank">HashtagWebpage</a></p>
 </footer>
 
-${!siteVisible ? `<!-- NOT INTERESTED SURVEY — HashtagWebpage.com -->
-<style>
-.survey-section{background:#f8fafc;padding:60px 24px;text-align:center}
-.survey-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:40px 32px;max-width:520px;margin:0 auto}
-.survey-title{font-size:1.3rem;font-weight:800;color:#111827;margin-bottom:8px}
-.survey-subtitle{font-size:.95rem;color:#6b7280;margin-bottom:28px}
-.survey-options{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;text-align:left}
-.survey-radio{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:border-color .2s,background .2s}
-.survey-radio:hover{background:#f9fafb;border-color:var(--mid)}
-.survey-radio input[type="radio"]{margin-top:2px;flex-shrink:0;cursor:pointer}
-.survey-radio label{flex:1;cursor:pointer;margin:0}
-.survey-radio input[type="radio"]:checked ~ label{font-weight:600;color:var(--pri)}
-.survey-textarea-wrapper{display:none;margin-top:12px}
-.survey-radio input[type="radio"]:checked + input[type="hidden"] ~ .survey-textarea-wrapper{display:block}
-.survey-textarea{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.9rem;resize:vertical;height:80px}
-.survey-submit{width:100%;padding:13px 24px;background:var(--pri);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .15s}
-.survey-submit:hover{opacity:.88;transform:translateY(-1px)}
-.survey-submit:disabled{opacity:.6;cursor:not-allowed}
-.survey-thankyou{padding:40px 32px;text-align:center;color:var(--pri)}
-.survey-thankyou h3{font-size:1.2rem;font-weight:700;margin-bottom:8px}
-</style>
-<div class="survey-section">
-  <div class="survey-card">
-    <div id="survey-form-wrapper">
-      <div class="survey-title">Not the right fit?</div>
-      <div class="survey-subtitle">Help us improve — we'll remove this preview immediately.</div>
-      <form id="survey-form" class="survey-options">
-        <div class="survey-radio">
-          <input type="radio" id="reason-timing" name="reason" value="timing" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-timing">The timing isn't right — follow up in a few months</label>
-        </div>
-        <div class="survey-radio">
-          <input type="radio" id="reason-competitor" name="reason" value="competitor" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-competitor">I already have someone working on my site</label>
-        </div>
-        <div class="survey-radio">
-          <input type="radio" id="reason-no-need" name="reason" value="no_need" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-no-need">I don't think my business needs a website</label>
-        </div>
-        <div class="survey-radio">
-          <input type="radio" id="reason-other" name="reason" value="other" />
-          <input type="hidden" class="survey-textarea-wrapper" />
-          <label for="reason-other">Other</label>
-          <div class="survey-textarea-wrapper">
-            <textarea name="note" class="survey-textarea" placeholder="Tell us more..."></textarea>
-          </div>
-        </div>
-      </form>
-      <button id="survey-submit" class="survey-submit" disabled>Remove This Preview →</button>
-    </div>
-    <div id="survey-thankyou" style="display:none" class="survey-thankyou">
-      <h3>Thank you!</h3>
-      <p>We've received your feedback and will remove this preview within 24 hours.</p>
-    </div>
-  </div>
-</div>
-<script>
-(function(){
-  var form = document.getElementById('survey-form');
-  var submitBtn = document.getElementById('survey-submit');
-  var formWrapper = document.getElementById('survey-form-wrapper');
-  var thankYou = document.getElementById('survey-thankyou');
-
-  form.addEventListener('change', function() {
-    var checked = form.querySelector('input[type="radio"]:checked');
-    submitBtn.disabled = !checked;
-  });
-
-  submitBtn.addEventListener('click', function() {
-    var checked = form.querySelector('input[type="radio"]:checked');
-    if (!checked) return;
-
-    var reason = checked.value;
-    var note = form.querySelector('textarea[name="note"]')?.value || '';
-    var slug = window.location.pathname.replace(/\\//g, '');
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Removing...';
-
-    fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: slug, reason: reason, note: note })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success || data.ok) {
-        formWrapper.style.display = 'none';
-        thankYou.style.display = 'block';
-      } else {
-        alert('Error: ' + (data.error || 'Failed to submit'));
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Remove This Preview →';
-      }
-    })
-    .catch(function(err) {
-      alert('Error: ' + err.message);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Remove This Preview →';
-    });
-  });
-})();
-</script>
-` : ""}
+${surveySection}
 
 <!-- HashtagWebpage · hashtagwebpage.com · End of page -->
 
@@ -852,9 +867,7 @@ ${!siteVisible ? `<!-- NOT INTERESTED SURVEY — HashtagWebpage.com -->
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener("click",function(e){var el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"});}});
   });
-  ${!siteVisible ? `/* HashtagWebpage preview protection */
-  document.addEventListener("contextmenu",function(e){e.preventDefault();});
-  document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="s"||e.key==="a")){e.preventDefault();}});` : ""}
+  ${previewProtectionScript}
 })();
 <\/script>
 <!-- HashtagWebpage.com — Website created for ${name} · ${category} · ${city} -->
