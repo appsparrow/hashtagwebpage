@@ -510,18 +510,18 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
         <p id="hwp-q">What do you think? 👋</p>
         <p id="hwp-sub">This site was built for you — for free.</p>
         <div>
-          <button class="hwp-btn hwp-btn-love" onclick="hwpLove()">😍 I love it!</button>
-          <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="hwp-btn hwp-btn-get">💳 How do I get this? — $299</a>
-          <button class="hwp-btn hwp-btn-no" onclick="hwpToggleReasons()">✕ Not for me</button>
+          <button class="hwp-btn hwp-btn-love" id="hwp-btn-love">😍 I love it!</button>
+          <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="hwp-btn hwp-btn-get" id="hwp-btn-get">💳 How do I get this? — $299</a>
+          <button class="hwp-btn hwp-btn-no" id="hwp-btn-no">✕ Not for me</button>
         </div>
         <div id="hwp-reasons">
           <p class="hwp-r-lbl">What\'s holding you back?</p>
-          <div class="hwp-r-opt"><input type="radio" id="r1" name="hwpr" value="timing" onchange="hwpPick(this)"><label for="r1">Timing isn\'t right — follow up later</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r2" name="hwpr" value="competitor" onchange="hwpPick(this)"><label for="r2">I already have someone for this</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r3" name="hwpr" value="no_need" onchange="hwpPick(this)"><label for="r3">My business doesn\'t need a website</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r4" name="hwpr" value="other" onchange="hwpPick(this)"><label for="r4">Other reason</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r1" name="hwpr" value="timing"><label for="r1">Timing isn\'t right — follow up later</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r2" name="hwpr" value="competitor"><label for="r2">I already have someone for this</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r3" name="hwpr" value="no_need"><label for="r3">My business doesn\'t need a website</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r4" name="hwpr" value="other"><label for="r4">Other reason</label></div>
           <textarea id="hwp-note" placeholder="Tell us more (optional)..."></textarea>
-          <button id="hwp-r-submit" onclick="hwpSubmit()">Remove This Preview →</button>
+          <button id="hwp-r-submit">Remove This Preview</button>
         </div>
       </div>
       <div id="hwp-done">
@@ -530,43 +530,80 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
       </div>
     </div>
   </div>
-  <button id="hwp-fab" onclick="hwpToggle()">
+  <button id="hwp-fab">
     <img src="${hwpLogo}" alt="" /><span id="hwp-fab-label">What do you think?</span>
   </button>
 </div>
 <script>
 (function(){
   var isOpen=false;
-  function show(){isOpen=true;var c=document.getElementById('hwp-card');c.style.display='block';requestAnimationFrame(function(){c.classList.add('open');});}
-  function hide(){isOpen=false;document.getElementById('hwp-card').classList.remove('open');}
-  window.hwpToggle=function(){isOpen?hide():show();};
-  window.hwpLove=function(){
-    document.getElementById('hwp-fab-label').textContent='Glad you love it! 😍';
-    document.getElementById('hwp-fab').style.animation='none';
+  var card=document.getElementById('hwp-card');
+  var fab=document.getElementById('hwp-fab');
+  var btnLove=document.getElementById('hwp-btn-love');
+  var btnNo=document.getElementById('hwp-btn-no');
+  var reasons=document.getElementById('hwp-reasons');
+  var removeBtn=document.getElementById('hwp-r-submit');
+  var noteEl=document.getElementById('hwp-note');
+  var mainView=document.getElementById('hwp-main-view');
+  var doneEl=document.getElementById('hwp-done');
+  var fabLabel=document.getElementById('hwp-fab-label');
+
+  function show(){
+    isOpen=true;
+    card.style.display='block';
+    requestAnimationFrame(function(){card.classList.add('open');});
+  }
+  function hide(){
+    isOpen=false;
+    card.classList.remove('open');
+  }
+
+  fab.addEventListener('click',function(){isOpen?hide():show();});
+
+  btnLove.addEventListener('click',function(){
+    fabLabel.textContent='Glad you love it!';
+    fab.style.animation='none';
     hide();
-  };
-  window.hwpToggleReasons=function(){document.getElementById('hwp-reasons').classList.toggle('open');};
-  window.hwpPick=function(el){
-    document.getElementById('hwp-r-submit').classList.add('on');
-    document.getElementById('hwp-note').className=el.value==='other'?'show':'';
-  };
-  window.hwpSubmit=function(){
+  });
+
+  btnNo.addEventListener('click',function(){
+    reasons.classList.toggle('open');
+  });
+
+  document.querySelectorAll('input[name="hwpr"]').forEach(function(radio){
+    radio.addEventListener('change',function(){
+      removeBtn.classList.add('on');
+      noteEl.className=radio.value==='other'?'show':'';
+    });
+  });
+
+  removeBtn.addEventListener('click',function(){
     var checked=document.querySelector('input[name="hwpr"]:checked');
     if(!checked)return;
-    var btn=document.getElementById('hwp-r-submit');
-    btn.textContent='Sending...';btn.classList.remove('on');
-    var slug=window.location.pathname.replace(/\//g,'').split('?')[0]||document.title;
+    removeBtn.textContent='Sending...';
+    removeBtn.classList.remove('on');
+    var slug=window.location.pathname.replace(/\//g,'').split('?')[0]||'unknown';
     fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({slug:slug,reason:checked.value,note:(document.getElementById('hwp-note').value||'')})
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({slug:slug,reason:checked.value,note:(noteEl.value||'')})
     }).then(function(){
-      document.getElementById('hwp-main-view').style.display='none';
-      document.getElementById('hwp-done').style.display='block';
-    }).catch(function(){btn.textContent='Remove This Preview \u2192';btn.classList.add('on');});
-  };
-  // Auto-open after 3 seconds on first visit
-  var seen=false;try{seen=sessionStorage.getItem('hwp-seen');}catch(e){}
-  if(!seen){setTimeout(function(){show();try{sessionStorage.setItem('hwp-seen','1');}catch(e){}},3000);}
+      mainView.style.display='none';
+      doneEl.style.display='block';
+    }).catch(function(){
+      removeBtn.textContent='Remove This Preview';
+      removeBtn.classList.add('on');
+    });
+  });
+
+  var seen=false;
+  try{seen=sessionStorage.getItem('hwp-seen');}catch(e){}
+  if(!seen){
+    setTimeout(function(){
+      show();
+      try{sessionStorage.setItem('hwp-seen','1');}catch(e){}
+    },3000);
+  }
 })();
 <\/script>
 ` : "";
