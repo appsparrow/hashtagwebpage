@@ -46,7 +46,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line
 .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .btn-call{background:#fff;color:var(--pri);padding:14px 32px;border-radius:100px;font-size:1rem;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.22);transition:transform .15s,box-shadow .15s}
 .btn-call:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
-.btn-quote{background:transparent;color:#fff;padding:14px 32px;border-radius:100px;font-size:1rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:2px solid rgba(255,255,255,.55);transition:background .15s,border-color .15s}
+.btn-quote{background:transparent;color:#fff;padding:14px 32px;border-radius:100px;font-size:1rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:2px solid rgba(255,255,255,.55);transition:background .15s,border-color .15s;cursor:pointer;font-family:inherit}
 .btn-quote:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.85)}
 /* LOGO */
 .biz-logo{height:64px;width:auto;max-width:200px;object-fit:contain;filter:invert(1);margin-bottom:16px;display:block;margin-left:auto;margin-right:auto}
@@ -113,7 +113,7 @@ footer a:hover{color:#fff}
 .footer-brand{font-size:.92rem;font-weight:800;color:#e2e8f0;margin-bottom:6px}
 /* PREVIEW BANNER */
 
-/* Disable text selection & right-click on preview sites */
+/* HashtagWebpage preview: disable text selection */
 body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 
 /* RESPONSIVE */
@@ -152,7 +152,7 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
     <div style="margin-bottom:26px"><div class="rating-row"><span class="stars">★★★★★</span><strong>4.9</strong><span style="opacity:.78">&nbsp;·&nbsp;112 Google Reviews</span></div></div>
     <div class="hero-btns">
       <a href="tel:5125550293" class="btn-call">📞 Call Now</a>
-      <a href="https://hashtagwebpage.com" class="btn-quote">💳 Get This Site →</a>
+      <button class="btn-quote" id="hwp-pricing-btn">💳 Get This Site →</button>
     </div>
   </div>
 </section>
@@ -257,153 +257,209 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
   <p style="margin-top:12px;opacity:.55">© 2026 Green Thumb Landscaping &nbsp;·&nbsp; Website by <a href="https://hashtagwebpage.com" target="_blank">HashtagWebpage</a></p>
 </footer>
 
-<!-- FEEDBACK WIDGET — HashtagWebpage.com -->
+<!-- PREVIEW BANNER + PRICING MODAL — HashtagWebpage.com — Remove entire block when customer pays -->
 <style>
-@keyframes hwp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.5)}60%{box-shadow:0 0 0 10px rgba(99,102,241,0)}}
-#hwp-wrap{position:fixed;bottom:20px;right:20px;z-index:99999;font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-#hwp-card{background:#fff;border-radius:18px;box-shadow:0 12px 48px rgba(0,0,0,.18);width:300px;overflow:hidden;display:none;transform:translateY(8px);opacity:0;transition:transform .22s ease,opacity .22s ease}
-#hwp-card.open{display:block;transform:translateY(0);opacity:1}
-#hwp-head{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);padding:14px 16px;display:flex;align-items:center;gap:10px}
-#hwp-head img{width:28px;height:28px;filter:brightness(0) invert(1);flex-shrink:0}
-#hwp-head-text{}
-#hwp-brand{color:#a5b4fc;font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin:0}
-#hwp-preview-badge{display:inline-block;background:rgba(99,102,241,.4);color:#c7d2fe;font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:100px;margin-top:2px}
-#hwp-body{padding:16px}
-#hwp-q{font-size:.95rem;font-weight:800;color:#111827;margin:0 0 3px}
-#hwp-sub{font-size:.78rem;color:#6b7280;margin:0 0 14px}
-.hwp-btn{width:100%;padding:11px 14px;border-radius:10px;border:none;font-size:.85rem;font-weight:600;cursor:pointer;text-align:left;transition:filter .15s,transform .12s;margin-bottom:7px;display:flex;align-items:center;gap:9px}
-.hwp-btn:last-child{margin-bottom:0}
-.hwp-btn:hover{filter:brightness(.94);transform:translateX(2px)}
-.hwp-btn-love{background:#f0fdf4;color:#15803d}
-.hwp-btn-get{background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;font-weight:700}
-.hwp-btn-no{background:#fef2f2;color:#dc2626}
-#hwp-reasons{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9}
-#hwp-reasons.open{display:block}
-.hwp-r-lbl{font-size:.75rem;font-weight:700;color:#4b5563;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em}
-.hwp-r-opt{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;margin-bottom:5px;transition:background .15s,border-color .15s}
-.hwp-r-opt:hover,.hwp-r-opt:has(input:checked){background:#eef2ff;border-color:#a5b4fc}
-.hwp-r-opt input{margin-top:2px;cursor:pointer;flex-shrink:0;accent-color:#6366f1}
-.hwp-r-opt label{font-size:.8rem;color:#374151;cursor:pointer;line-height:1.4;margin:0}
-.hwp-r-opt input:checked ~ label{font-weight:700;color:#4338ca}
-#hwp-note{display:none;width:100%;margin-top:5px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.8rem;font-family:inherit;resize:vertical;height:60px;box-sizing:border-box}
-#hwp-note.show{display:block}
-#hwp-r-submit{width:100%;margin-top:10px;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer;opacity:.4;pointer-events:none;transition:opacity .15s}
-#hwp-r-submit.on{opacity:1;pointer-events:auto}
-#hwp-done{display:none;text-align:center;padding:12px 0 4px}
-#hwp-done strong{display:block;font-size:1rem;color:#15803d;margin-bottom:3px}
-#hwp-done small{font-size:.78rem;color:#9ca3af}
-#hwp-fab{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:100px;padding:13px 20px;font-size:.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(79,70,229,.45);display:flex;align-items:center;gap:9px;animation:hwp-pulse 2.2s ease-in-out infinite;transition:transform .15s}
-#hwp-fab:hover{transform:translateY(-2px);animation:none;box-shadow:0 6px 28px rgba(79,70,229,.55)}
-#hwp-fab img{width:20px;height:20px;filter:brightness(0) invert(1)}
+/* ── BANNER ── */
+#hwp-banner{position:fixed;top:0;left:0;right:0;z-index:99999;background:#1e1b4b;color:#fff;font-family:'Inter',system-ui,sans-serif;padding:10px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 16px rgba(0,0,0,.3);flex-wrap:wrap}
+#hwp-bl{display:flex;align-items:center;gap:8px;flex-shrink:0}
+#hwp-bl img{width:20px;height:20px;filter:brightness(0) invert(1);flex-shrink:0}
+#hwp-bl span{font-size:.82rem;font-weight:500;color:#c7d2fe}
+#hwp-bl strong{color:#fff;font-weight:700}
+#hwp-pills{display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex:1}
+.hwp-pill{border:none;border-radius:100px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .12s;white-space:nowrap;line-height:1.4}
+.hwp-pill:hover{opacity:.85;transform:translateY(-1px)}
+.hwp-pill-love{background:#22c55e;color:#fff}
+.hwp-pill-get{background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff}
+.hwp-pill-no{background:rgba(255,255,255,.1);color:#e5e7eb;border:1px solid rgba(255,255,255,.2)}
+#hwp-close{background:none;border:none;color:rgba(255,255,255,.4);font-size:1rem;cursor:pointer;padding:2px 4px;line-height:1;margin-left:auto;flex-shrink:0;font-family:inherit}
+#hwp-close:hover{color:#fff}
+#hwp-rrow{display:none;width:100%;padding-top:9px;border-top:1px solid rgba(255,255,255,.1);margin-top:4px;gap:8px;flex-wrap:wrap;align-items:center}
+#hwp-rrow.open{display:flex}
+#hwp-rrow>span{font-size:.74rem;color:#a5b4fc;font-weight:700;white-space:nowrap;flex-shrink:0}
+.hwp-rpill{background:rgba(255,255,255,.07);color:#d1d5db;border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:5px 13px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s}
+.hwp-rpill:hover,.hwp-rpill.sel{background:rgba(99,102,241,.45);border-color:#818cf8;color:#fff}
+#hwp-rsub{background:#6366f1;color:#fff;border:none;border-radius:100px;padding:5px 16px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:.35;pointer-events:none;transition:opacity .15s}
+#hwp-rsub.on{opacity:1;pointer-events:auto}
+/* ── PRICING MODAL ── */
+#hwp-overlay{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
+#hwp-overlay.open{display:flex}
+#hwp-modal{background:#fff;border-radius:20px;width:100%;max-width:560px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.35);position:relative;font-family:'Inter',system-ui,sans-serif;animation:hwp-pop .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes hwp-pop{from{opacity:0;transform:scale(.93) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+#hwp-mhead{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);padding:20px 24px 18px;display:flex;align-items:flex-start;gap:10px}
+#hwp-mhead img{width:26px;height:26px;filter:brightness(0) invert(1);flex-shrink:0;margin-top:2px}
+#hwp-mtitle{color:#fff;font-size:1.05rem;font-weight:800;line-height:1.2}
+#hwp-msub{color:#a5b4fc;font-size:.78rem;font-weight:400;margin-top:3px}
+#hwp-mclose{margin-left:auto;background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;transition:background .15s}
+#hwp-mclose:hover{background:rgba(255,255,255,.28)}
+#hwp-plans{display:flex;border-top:1px solid #f1f5f9}
+.hwp-plan{flex:1;padding:22px 18px 20px;display:flex;flex-direction:column;border-right:1px solid #f1f5f9}
+.hwp-plan:last-child{border-right:none}
+.hwp-plan-icon{font-size:1.5rem;margin-bottom:6px}
+.hwp-plan-name{font-size:.9rem;font-weight:800;color:#111827;text-transform:uppercase;letter-spacing:.04em}
+.hwp-plan-price{font-size:1.75rem;font-weight:900;color:#111827;line-height:1;margin:6px 0 2px}
+.hwp-plan-price small{font-size:.78rem;font-weight:500;color:#6b7280}
+.hwp-plan-badge{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:100px;margin-bottom:12px}
+.hwp-badge-own{background:#fef3c7;color:#92400e}
+.hwp-badge-host{background:#ede9fe;color:#5b21b6}
+.hwp-plan-desc{font-size:.78rem;color:#6b7280;line-height:1.5;margin-bottom:14px}
+.hwp-plan-list{list-style:none;padding:0;margin:0 0 20px;display:flex;flex-direction:column;gap:7px;flex:1}
+.hwp-plan-list li{font-size:.77rem;color:#374151;display:flex;align-items:flex-start;gap:6px;line-height:1.4}
+.hwp-plan-list li::before{content:'✓';color:#22c55e;font-weight:800;flex-shrink:0}
+.hwp-cta{display:block;width:100%;padding:12px;border-radius:100px;font-size:.88rem;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s,transform .12s;margin-top:auto}
+.hwp-cta:hover{opacity:.88;transform:translateY(-1px)}
+.hwp-cta-own{background:#f59e0b;color:#fff}
+.hwp-cta-host{background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff}
 </style>
-<div id="hwp-wrap">
-  <div id="hwp-card">
-    <div id="hwp-head">
-      <img src="data:image/png;base64,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" alt="HashtagWebpage" />
-      <div id="hwp-head-text">
-        <p id="hwp-brand">HashtagWebpage</p>
-        <span id="hwp-preview-badge">Free Preview</span>
+<!-- Pricing modal -->
+<div id="hwp-overlay">
+  <div id="hwp-modal">
+    <div id="hwp-mhead">
+      <img src="data:image/png;base64,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" alt="" />
+      <div>
+        <div id="hwp-mtitle">Choose Your Plan</div>
+        <div id="hwp-msub">This site was built for you — pick how you'd like to keep it.</div>
       </div>
+      <button id="hwp-mclose">✕</button>
     </div>
-    <div id="hwp-body">
-      <div id="hwp-main-view">
-        <p id="hwp-q">What do you think? 👋</p>
-        <p id="hwp-sub">This site was built for you — for free.</p>
-        <div>
-          <button class="hwp-btn hwp-btn-love" id="hwp-btn-love">😍 I love it!</button>
-          <a href="https://hashtagwebpage.com" class="hwp-btn hwp-btn-get" id="hwp-btn-get">💳 How do I get this? — $299</a>
-          <button class="hwp-btn hwp-btn-no" id="hwp-btn-no">✕ Not for me</button>
-        </div>
-        <div id="hwp-reasons">
-          <p class="hwp-r-lbl">What's holding you back?</p>
-          <div class="hwp-r-opt"><input type="radio" id="r1" name="hwpr" value="timing"><label for="r1">Timing isn't right — follow up later</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r2" name="hwpr" value="competitor"><label for="r2">I already have someone for this</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r3" name="hwpr" value="no_need"><label for="r3">My business doesn't need a website</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r4" name="hwpr" value="other"><label for="r4">Other reason</label></div>
-          <textarea id="hwp-note" placeholder="Tell us more (optional)..."></textarea>
-          <button id="hwp-r-submit">Remove This Preview</button>
-        </div>
+    <div id="hwp-plans">
+      <div class="hwp-plan">
+        <div class="hwp-plan-icon">💳</div>
+        <div class="hwp-plan-name">Own It</div>
+        <div class="hwp-plan-price">$299 <small>one-time</small></div>
+        <span class="hwp-plan-badge hwp-badge-own">Download &amp; self-host</span>
+        <div class="hwp-plan-desc">Get the full website files. Host it anywhere — we'll send you the download link immediately.</div>
+        <ul class="hwp-plan-list">
+          <li>Complete HTML/CSS/JS files delivered</li>
+          <li>Host with any provider you choose</li>
+          <li>One-time payment — yours forever</li>
+          <li>30-day support included</li>
+        </ul>
+        <a href="https://buy.stripe.com/6oU00kgm48aV9Za0s16kg00" class="hwp-cta hwp-cta-own">Buy Now — $299 →</a>
       </div>
-      <div id="hwp-done">
-        <strong>✅ Got it, thank you!</strong>
-        <small>We'll take this down within 24 hours.</small>
+      <div class="hwp-plan">
+        <div class="hwp-plan-icon">🏠</div>
+        <div class="hwp-plan-name">We Host It</div>
+        <div class="hwp-plan-price">$199 <small>+ $12/mo</small></div>
+        <span class="hwp-plan-badge hwp-badge-host">Fully managed</span>
+        <div class="hwp-plan-desc">We handle everything. Your site goes live with a custom domain name included.</div>
+        <ul class="hwp-plan-list">
+          <li>Custom domain name included</li>
+          <li>Hosting managed by us</li>
+          <li>Updates &amp; changes included</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="https://hashtagwebpage.com" class="hwp-cta hwp-cta-host">Get Started →</a>
       </div>
     </div>
   </div>
-  <button id="hwp-fab">
-    <img src="data:image/png;base64,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" alt="" /><span id="hwp-fab-label">What do you think?</span>
-  </button>
+</div>
+<!-- Preview banner -->
+<div id="hwp-banner">
+  <div id="hwp-bl">
+    <img id="hwp-logo" src="data:image/png;base64,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" alt="" />
+    <span><strong>Preview</strong> — how do you like it?</span>
+  </div>
+  <div id="hwp-pills">
+    <button class="hwp-pill hwp-pill-love" id="hwp-plove">😍 Love it</button>
+    <button class="hwp-pill hwp-pill-get" id="hwp-pget">💳 Get This Site</button>
+    <button class="hwp-pill hwp-pill-no" id="hwp-pno">✕ Not for me</button>
+  </div>
+  <button id="hwp-close" title="Dismiss">✕</button>
+  <div id="hwp-rrow">
+    <span>Why not?</span>
+    <button class="hwp-rpill" data-v="timing">⏰ Bad timing</button>
+    <button class="hwp-rpill" data-v="competitor">✓ Have website</button>
+    <button class="hwp-rpill" data-v="no_need">🚫 Don't need one</button>
+    <button class="hwp-rpill" data-v="other">💬 Other</button>
+    <button id="hwp-rsub">Submit</button>
+  </div>
 </div>
 <script>
 (function(){
-  var isOpen=false;
-  var card=document.getElementById('hwp-card');
-  var fab=document.getElementById('hwp-fab');
-  var btnLove=document.getElementById('hwp-btn-love');
-  var btnNo=document.getElementById('hwp-btn-no');
-  var reasons=document.getElementById('hwp-reasons');
-  var removeBtn=document.getElementById('hwp-r-submit');
-  var noteEl=document.getElementById('hwp-note');
-  var mainView=document.getElementById('hwp-main-view');
-  var doneEl=document.getElementById('hwp-done');
-  var fabLabel=document.getElementById('hwp-fab-label');
+  var banner=document.getElementById('hwp-banner');
+  var overlay=document.getElementById('hwp-overlay');
+  var plove=document.getElementById('hwp-plove');
+  var pget=document.getElementById('hwp-pget');
+  var pno=document.getElementById('hwp-pno');
+  var closeBtn=document.getElementById('hwp-close');
+  var mclose=document.getElementById('hwp-mclose');
+  var rrow=document.getElementById('hwp-rrow');
+  var rsub=document.getElementById('hwp-rsub');
+  var heroBtn=document.getElementById('hwp-pricing-btn');
+  var logoSrc=document.getElementById('hwp-logo').src;
+  var sel=null;
 
-  function show(){
-    isOpen=true;
-    card.style.display='block';
-    requestAnimationFrame(function(){card.classList.add('open');});
+  /* ── Layout ── */
+  function syncLayout(){
+    var h=banner.offsetHeight;
+    document.body.style.paddingTop=h+'px';
+    var nav=document.querySelector('.nav');
+    if(nav)nav.style.top=h+'px';
   }
-  function hide(){
-    isOpen=false;
-    card.classList.remove('open');
+  syncLayout();
+  window.addEventListener('resize',syncLayout);
+
+  /* ── Banner dismiss ── */
+  function dismiss(){
+    banner.style.transition='opacity .3s';
+    banner.style.opacity='0';
+    setTimeout(function(){
+      banner.style.display='none';
+      document.body.style.paddingTop='0';
+      var nav=document.querySelector('.nav');
+      if(nav)nav.style.top='0';
+    },300);
+  }
+  function showThanks(msg){
+    banner.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:2px 0"><img src="'+logoSrc+'" style="width:18px;height:18px;filter:brightness(0) invert(1);flex-shrink:0" alt=""/><span style="font-size:.82rem;font-weight:600;color:#86efac">'+msg+'</span></div>';
+    syncLayout();
+    setTimeout(dismiss,2800);
   }
 
-  fab.addEventListener('click',function(){isOpen?hide():show();});
+  /* ── Modal ── */
+  function openModal(){overlay.classList.add('open');}
+  function closeModal(){overlay.classList.remove('open');}
 
-  btnLove.addEventListener('click',function(){
-    fabLabel.textContent='Glad you love it!';
-    fab.style.animation='none';
-    hide();
+  if(heroBtn)heroBtn.addEventListener('click',openModal);
+  pget.addEventListener('click',openModal);
+  mclose.addEventListener('click',closeModal);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)closeModal();});
+
+  /* ── Banner actions ── */
+  plove.addEventListener('click',function(){
+    showThanks('😍 Glad you love it! We'll be in touch.');
   });
-
-  btnNo.addEventListener('click',function(){
-    reasons.classList.toggle('open');
+  pno.addEventListener('click',function(){
+    rrow.classList.toggle('open');
+    syncLayout();
   });
+  closeBtn.addEventListener('click',dismiss);
 
-  document.querySelectorAll('input[name="hwpr"]').forEach(function(radio){
-    radio.addEventListener('change',function(){
-      removeBtn.classList.add('on');
-      noteEl.className=radio.value==='other'?'show':'';
+  /* ── Not-for-me reasons ── */
+  document.querySelectorAll('.hwp-rpill').forEach(function(p){
+    p.addEventListener('click',function(){
+      document.querySelectorAll('.hwp-rpill').forEach(function(x){x.classList.remove('sel');});
+      p.classList.add('sel');
+      sel=p.getAttribute('data-v');
+      rsub.classList.add('on');
     });
   });
-
-  removeBtn.addEventListener('click',function(){
-    var checked=document.querySelector('input[name="hwpr"]:checked');
-    if(!checked)return;
-    removeBtn.textContent='Sending...';
-    removeBtn.classList.remove('on');
+  rsub.addEventListener('click',function(){
+    if(!sel)return;
+    rsub.textContent='Sending...';
+    rsub.classList.remove('on');
     var slug=window.location.pathname.replace(///g,'').split('?')[0]||'unknown';
     fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({slug:slug,reason:checked.value,note:(noteEl.value||'')})
+      body:JSON.stringify({slug:slug,reason:sel,note:''})
     }).then(function(){
-      mainView.style.display='none';
-      doneEl.style.display='block';
+      showThanks('✅ Got it — we'll take this down within 24 hours.');
     }).catch(function(){
-      removeBtn.textContent='Remove This Preview';
-      removeBtn.classList.add('on');
+      rsub.textContent='Submit';
+      rsub.classList.add('on');
     });
   });
-
-  var seen=false;
-  try{seen=sessionStorage.getItem('hwp-seen');}catch(e){}
-  if(!seen){
-    setTimeout(function(){
-      show();
-      try{sessionStorage.setItem('hwp-seen','1');}catch(e){}
-    },3000);
-  }
 })();
 </script>
 
