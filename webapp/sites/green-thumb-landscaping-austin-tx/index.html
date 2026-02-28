@@ -151,8 +151,8 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
     <p class="hero-sub">Beautiful Lawns & Gardens in Austin, TX</p>
     <div style="margin-bottom:26px"><div class="rating-row"><span class="stars">★★★★★</span><strong>4.9</strong><span style="opacity:.78">&nbsp;·&nbsp;112 Google Reviews</span></div></div>
     <div class="hero-btns">
-      <a href="tel:5125550293" class="btn-call">📞 (512) 555-0293</a>
-      <a href="#contact" class="btn-quote">Get Free Quote →</a>
+      <a href="tel:5125550293" class="btn-call">📞 Call Now</a>
+      <a href="https://hashtagwebpage.com" class="btn-quote">💳 Get This Site →</a>
     </div>
   </div>
 </section>
@@ -244,24 +244,7 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 </div>
 <!-- End location section — HashtagWebpage.com -->
 
-<!-- CONTACT -->
-<div id="contact" class="contact-section">
-  <div class="contact-inner">
-    <h2>Get a Free Quote</h2>
-    <p>Fill in your details and we'll get back to you within 24 hours — usually much faster.</p>
-    <div class="form-card">
-      <form id="contact-form">
-        <input type="hidden" name="business_name" value="Green Thumb Landscaping"/>
-        <div class="form-group"><label class="form-label">Your Name *</label><input class="form-input" type="text" name="name" placeholder="Jane Smith" required/></div>
-        <div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" type="tel" name="phone" placeholder="(555) 000-0000" required/></div>
-        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" name="email" placeholder="you@email.com"/></div>
-        <div class="form-group"><label class="form-label">How can we help?</label><textarea class="form-input" name="message" placeholder="Tell us about your project..."></textarea></div>
-        <button type="submit" class="form-submit">Send My Request →</button>
-        <div id="form-status"></div>
-      </form>
-    </div>
-  </div>
-</div>
+<!-- CONTACT SECTION REMOVED — HashtagWebpage add-on feature -->
 
 <!-- FOOTER — HashtagWebpage.com -->
 <!-- This website was designed, built, and deployed by HashtagWebpage · hashtagwebpage.com -->
@@ -327,18 +310,18 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
         <p id="hwp-q">What do you think? 👋</p>
         <p id="hwp-sub">This site was built for you — for free.</p>
         <div>
-          <button class="hwp-btn hwp-btn-love" onclick="hwpLove()">😍 I love it!</button>
-          <a href="https://hashtagwebpage.com" class="hwp-btn hwp-btn-get">💳 How do I get this? — $299</a>
-          <button class="hwp-btn hwp-btn-no" onclick="hwpToggleReasons()">✕ Not for me</button>
+          <button class="hwp-btn hwp-btn-love" id="hwp-btn-love">😍 I love it!</button>
+          <a href="https://hashtagwebpage.com" class="hwp-btn hwp-btn-get" id="hwp-btn-get">💳 How do I get this? — $299</a>
+          <button class="hwp-btn hwp-btn-no" id="hwp-btn-no">✕ Not for me</button>
         </div>
         <div id="hwp-reasons">
           <p class="hwp-r-lbl">What's holding you back?</p>
-          <div class="hwp-r-opt"><input type="radio" id="r1" name="hwpr" value="timing" onchange="hwpPick(this)"><label for="r1">Timing isn't right — follow up later</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r2" name="hwpr" value="competitor" onchange="hwpPick(this)"><label for="r2">I already have someone for this</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r3" name="hwpr" value="no_need" onchange="hwpPick(this)"><label for="r3">My business doesn't need a website</label></div>
-          <div class="hwp-r-opt"><input type="radio" id="r4" name="hwpr" value="other" onchange="hwpPick(this)"><label for="r4">Other reason</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r1" name="hwpr" value="timing"><label for="r1">Timing isn't right — follow up later</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r2" name="hwpr" value="competitor"><label for="r2">I already have someone for this</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r3" name="hwpr" value="no_need"><label for="r3">My business doesn't need a website</label></div>
+          <div class="hwp-r-opt"><input type="radio" id="r4" name="hwpr" value="other"><label for="r4">Other reason</label></div>
           <textarea id="hwp-note" placeholder="Tell us more (optional)..."></textarea>
-          <button id="hwp-r-submit" onclick="hwpSubmit()">Remove This Preview →</button>
+          <button id="hwp-r-submit">Remove This Preview</button>
         </div>
       </div>
       <div id="hwp-done">
@@ -347,43 +330,80 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
       </div>
     </div>
   </div>
-  <button id="hwp-fab" onclick="hwpToggle()">
+  <button id="hwp-fab">
     <img src="data:image/png;base64,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" alt="" /><span id="hwp-fab-label">What do you think?</span>
   </button>
 </div>
 <script>
 (function(){
   var isOpen=false;
-  function show(){isOpen=true;var c=document.getElementById('hwp-card');c.style.display='block';requestAnimationFrame(function(){c.classList.add('open');});}
-  function hide(){isOpen=false;document.getElementById('hwp-card').classList.remove('open');}
-  window.hwpToggle=function(){isOpen?hide():show();};
-  window.hwpLove=function(){
-    document.getElementById('hwp-fab-label').textContent='Glad you love it! 😍';
-    document.getElementById('hwp-fab').style.animation='none';
+  var card=document.getElementById('hwp-card');
+  var fab=document.getElementById('hwp-fab');
+  var btnLove=document.getElementById('hwp-btn-love');
+  var btnNo=document.getElementById('hwp-btn-no');
+  var reasons=document.getElementById('hwp-reasons');
+  var removeBtn=document.getElementById('hwp-r-submit');
+  var noteEl=document.getElementById('hwp-note');
+  var mainView=document.getElementById('hwp-main-view');
+  var doneEl=document.getElementById('hwp-done');
+  var fabLabel=document.getElementById('hwp-fab-label');
+
+  function show(){
+    isOpen=true;
+    card.style.display='block';
+    requestAnimationFrame(function(){card.classList.add('open');});
+  }
+  function hide(){
+    isOpen=false;
+    card.classList.remove('open');
+  }
+
+  fab.addEventListener('click',function(){isOpen?hide():show();});
+
+  btnLove.addEventListener('click',function(){
+    fabLabel.textContent='Glad you love it!';
+    fab.style.animation='none';
     hide();
-  };
-  window.hwpToggleReasons=function(){document.getElementById('hwp-reasons').classList.toggle('open');};
-  window.hwpPick=function(el){
-    document.getElementById('hwp-r-submit').classList.add('on');
-    document.getElementById('hwp-note').className=el.value==='other'?'show':'';
-  };
-  window.hwpSubmit=function(){
+  });
+
+  btnNo.addEventListener('click',function(){
+    reasons.classList.toggle('open');
+  });
+
+  document.querySelectorAll('input[name="hwpr"]').forEach(function(radio){
+    radio.addEventListener('change',function(){
+      removeBtn.classList.add('on');
+      noteEl.className=radio.value==='other'?'show':'';
+    });
+  });
+
+  removeBtn.addEventListener('click',function(){
     var checked=document.querySelector('input[name="hwpr"]:checked');
     if(!checked)return;
-    var btn=document.getElementById('hwp-r-submit');
-    btn.textContent='Sending...';btn.classList.remove('on');
-    var slug=window.location.pathname.replace(///g,'').split('?')[0]||document.title;
+    removeBtn.textContent='Sending...';
+    removeBtn.classList.remove('on');
+    var slug=window.location.pathname.replace(///g,'').split('?')[0]||'unknown';
     fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({slug:slug,reason:checked.value,note:(document.getElementById('hwp-note').value||'')})
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({slug:slug,reason:checked.value,note:(noteEl.value||'')})
     }).then(function(){
-      document.getElementById('hwp-main-view').style.display='none';
-      document.getElementById('hwp-done').style.display='block';
-    }).catch(function(){btn.textContent='Remove This Preview →';btn.classList.add('on');});
-  };
-  // Auto-open after 3 seconds on first visit
-  var seen=false;try{seen=sessionStorage.getItem('hwp-seen');}catch(e){}
-  if(!seen){setTimeout(function(){show();try{sessionStorage.setItem('hwp-seen','1');}catch(e){}},3000);}
+      mainView.style.display='none';
+      doneEl.style.display='block';
+    }).catch(function(){
+      removeBtn.textContent='Remove This Preview';
+      removeBtn.classList.add('on');
+    });
+  });
+
+  var seen=false;
+  try{seen=sessionStorage.getItem('hwp-seen');}catch(e){}
+  if(!seen){
+    setTimeout(function(){
+      show();
+      try{sessionStorage.setItem('hwp-seen','1');}catch(e){}
+    },3000);
+  }
 })();
 </script>
 
@@ -392,19 +412,6 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 
 <script>
 (function(){
-  var form=document.getElementById("contact-form"),status=document.getElementById("form-status");
-  form.addEventListener("submit",function(e){
-    e.preventDefault();
-    var btn=form.querySelector(".form-submit");
-    btn.disabled=true;btn.textContent="Sending...";
-    var data={};new FormData(form).forEach(function(v,k){data[k]=v;});
-    fetch("https://formspree.io/f/YOUR_FORM_ID",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(data)})
-    .then(function(r){
-      if(r.ok){status.innerHTML='<p style="color:#16a34a;font-weight:600;margin-top:12px">✅ Thanks! We'll be in touch soon.</p>';form.reset();}
-      else{status.innerHTML='<p style="color:#dc2626;margin-top:12px">❌ Something went wrong. Please call us directly.</p>';}
-    }).catch(function(){status.innerHTML='<p style="color:#dc2626;margin-top:12px">❌ Could not send. Please call us directly.</p>';})
-    .finally(function(){btn.disabled=false;btn.textContent="Send My Request →";});
-  });
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener("click",function(e){var el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"});}});
   });
