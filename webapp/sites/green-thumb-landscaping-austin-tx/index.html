@@ -259,26 +259,28 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 
 <!-- PREVIEW BANNER + PRICING MODAL — HashtagWebpage.com — Remove entire block when customer pays -->
 <style>
-/* ── BANNER ── */
-#hwp-banner{position:fixed;top:0;left:0;right:0;z-index:99999;background:#1e1b4b;color:#fff;font-family:'Inter',system-ui,sans-serif;padding:10px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 16px rgba(0,0,0,.3);flex-wrap:wrap}
-#hwp-bl{display:flex;align-items:center;gap:8px;flex-shrink:0}
-#hwp-bl img{width:20px;height:20px;filter:brightness(0) invert(1);flex-shrink:0}
-#hwp-bl span{font-size:.82rem;font-weight:500;color:#c7d2fe}
-#hwp-bl strong{color:#fff;font-weight:700}
-#hwp-pills{display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex:1}
-.hwp-pill{border:none;border-radius:100px;padding:6px 16px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .12s;white-space:nowrap;line-height:1.4}
+/* ── BANNER ── CSS fallback layout until JS syncs heights */
+body{padding-top:58px}
+.nav{top:58px !important}
+#hwp-banner{position:fixed;top:0;left:0;right:0;z-index:99999;background:#1e1b4b;color:#fff;font-family:'Inter',system-ui,sans-serif;padding:14px 24px;display:flex;align-items:center;gap:14px;box-shadow:0 3px 20px rgba(0,0,0,.35);flex-wrap:wrap;min-height:58px}
+#hwp-bl{display:flex;align-items:center;gap:10px;flex-shrink:0}
+#hwp-bl img{width:22px;height:22px;filter:brightness(0) invert(1);flex-shrink:0}
+#hwp-bl span{font-size:.88rem;font-weight:500;color:#c7d2fe}
+#hwp-bl strong{color:#fff;font-weight:800}
+#hwp-pills{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.hwp-pill{border:none;border-radius:100px;padding:8px 20px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .12s;white-space:nowrap;line-height:1.4}
 .hwp-pill:hover{opacity:.85;transform:translateY(-1px)}
 .hwp-pill-love{background:#22c55e;color:#fff}
 .hwp-pill-get{background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff}
 .hwp-pill-no{background:rgba(255,255,255,.1);color:#e5e7eb;border:1px solid rgba(255,255,255,.2)}
-#hwp-close{background:none;border:none;color:rgba(255,255,255,.4);font-size:1rem;cursor:pointer;padding:2px 4px;line-height:1;margin-left:auto;flex-shrink:0;font-family:inherit}
+#hwp-close{background:none;border:none;color:rgba(255,255,255,.4);font-size:1.1rem;cursor:pointer;padding:4px 6px;line-height:1;margin-left:auto;flex-shrink:0;font-family:inherit}
 #hwp-close:hover{color:#fff}
-#hwp-rrow{display:none;width:100%;padding-top:9px;border-top:1px solid rgba(255,255,255,.1);margin-top:4px;gap:8px;flex-wrap:wrap;align-items:center}
+#hwp-rrow{display:none;width:100%;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px;gap:8px;flex-wrap:wrap;align-items:center}
 #hwp-rrow.open{display:flex}
-#hwp-rrow>span{font-size:.74rem;color:#a5b4fc;font-weight:700;white-space:nowrap;flex-shrink:0}
-.hwp-rpill{background:rgba(255,255,255,.07);color:#d1d5db;border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:5px 13px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s}
+#hwp-rrow>span{font-size:.78rem;color:#a5b4fc;font-weight:700;white-space:nowrap;flex-shrink:0}
+.hwp-rpill{background:rgba(255,255,255,.07);color:#d1d5db;border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:6px 15px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s}
 .hwp-rpill:hover,.hwp-rpill.sel{background:rgba(99,102,241,.45);border-color:#818cf8;color:#fff}
-#hwp-rsub{background:#6366f1;color:#fff;border:none;border-radius:100px;padding:5px 16px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:.35;pointer-events:none;transition:opacity .15s}
+#hwp-rsub{background:#6366f1;color:#fff;border:none;border-radius:100px;padding:6px 18px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;opacity:.35;pointer-events:none;transition:opacity .15s}
 #hwp-rsub.on{opacity:1;pointer-events:auto}
 /* ── PRICING MODAL ── */
 #hwp-overlay{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
@@ -427,7 +429,7 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 
   /* ── Banner actions ── */
   plove.addEventListener('click',function(){
-    showThanks('😍 Glad you love it! We'll be in touch.');
+    showThanks("😍 Glad you love it! We'll be in touch.");
   });
   pno.addEventListener('click',function(){
     rrow.classList.toggle('open');
@@ -454,7 +456,7 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({slug:slug,reason:sel,note:''})
     }).then(function(){
-      showThanks('✅ Got it — we'll take this down within 24 hours.');
+      showThanks("✅ Got it — we'll take this down within 24 hours.");
     }).catch(function(){
       rsub.textContent='Submit';
       rsub.classList.add('on');
