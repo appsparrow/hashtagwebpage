@@ -651,7 +651,7 @@ body{padding-top:58px}
     if(!sel)return;
     rsub.textContent='Sending...';
     rsub.classList.remove('on');
-    var slug=window.location.pathname.replace(/\//g,'').split('?')[0]||'unknown';
+    var slug=window.location.pathname.split('/').filter(Boolean)[0]||'unknown';
     fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
