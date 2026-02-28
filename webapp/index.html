@@ -749,8 +749,8 @@ ${previewBannerHTML}
     <p class="hero-sub">${t.tagline}</p>
     ${hasRating ? `<div style="margin-bottom:26px"><div class="rating-row"><span class="stars">${starsStr}</span><strong>${rating.toFixed(1)}</strong><span style="opacity:.78">&nbsp;·&nbsp;${reviews} Google Reviews</span></div></div>` : ""}
     <div class="hero-btns">
-      <a href="tel:${phone.replace(/\D/g,"")}" class="btn-call">📞 ${phone}</a>
-      <a href="#contact" class="btn-quote">Get Free Quote →</a>
+      <a href="tel:${phone.replace(/\D/g,"")}" class="btn-call">📞 Call Now</a>
+      <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="btn-quote">💳 Get This Site →</a>
     </div>
   </div>
 </section>
@@ -837,24 +837,7 @@ ${hasRating ? `<!-- RATING -->
 </div>
 <!-- End location section — HashtagWebpage.com -->
 
-<!-- CONTACT -->
-<div id="contact" class="contact-section">
-  <div class="contact-inner">
-    <h2>Get a Free Quote</h2>
-    <p>Fill in your details and we'll get back to you within 24 hours — usually much faster.</p>
-    <div class="form-card">
-      <form id="contact-form">
-        <input type="hidden" name="business_name" value="${name}"/>
-        <div class="form-group"><label class="form-label">Your Name *</label><input class="form-input" type="text" name="name" placeholder="Jane Smith" required/></div>
-        <div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" type="tel" name="phone" placeholder="(555) 000-0000" required/></div>
-        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" name="email" placeholder="you@email.com"/></div>
-        <div class="form-group"><label class="form-label">How can we help?</label><textarea class="form-input" name="message" placeholder="Tell us about your project..."></textarea></div>
-        <button type="submit" class="form-submit">Send My Request →</button>
-        <div id="form-status"></div>
-      </form>
-    </div>
-  </div>
-</div>
+<!-- CONTACT SECTION REMOVED — HashtagWebpage add-on feature -->
 
 <!-- FOOTER — HashtagWebpage.com -->
 <!-- This website was designed, built, and deployed by HashtagWebpage · hashtagwebpage.com -->
@@ -873,19 +856,6 @@ ${surveySection}
 
 <script>
 (function(){
-  var form=document.getElementById("contact-form"),status=document.getElementById("form-status");
-  form.addEventListener("submit",function(e){
-    e.preventDefault();
-    var btn=form.querySelector(".form-submit");
-    btn.disabled=true;btn.textContent="Sending...";
-    var data={};new FormData(form).forEach(function(v,k){data[k]=v;});
-    fetch("https://formspree.io/f/YOUR_FORM_ID",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(data)})
-    .then(function(r){
-      if(r.ok){status.innerHTML='<p style="color:#16a34a;font-weight:600;margin-top:12px">✅ Thanks! We\'ll be in touch soon.</p>';form.reset();}
-      else{status.innerHTML='<p style="color:#dc2626;margin-top:12px">❌ Something went wrong. Please call us directly.</p>';}
-    }).catch(function(){status.innerHTML='<p style="color:#dc2626;margin-top:12px">❌ Could not send. Please call us directly.</p>';})
-    .finally(function(){btn.disabled=false;btn.textContent="Send My Request →";});
-  });
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener("click",function(e){var el=document.querySelector(a.getAttribute("href"));if(el){e.preventDefault();el.scrollIntoView({behavior:"smooth"});}});
   });
