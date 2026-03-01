@@ -255,31 +255,25 @@ function rowToLead(row) {
 }
 
 // Upsert a single lead to Supabase (merge-on-conflict by id)
+// Throws on error so saveLeads can surface a toast — do NOT wrap in try/catch here
 async function dbSaveLead(lead, settings) {
   if (!settings.supabaseUrl) return;
-  try {
-    await sbFetch(
-      settings.supabaseUrl, settings.supabaseKey,
-      "/leads", "POST", leadToRow(lead),
-      { "Prefer": "resolution=merge-duplicates" }
-    );
-  } catch(e) {
-    console.warn("[Supabase] Save failed:", e.message);
-  }
+  await sbFetch(
+    settings.supabaseUrl, settings.supabaseKey,
+    "/leads", "POST", leadToRow(lead),
+    { "Prefer": "resolution=merge-duplicates" }
+  );
 }
 
 // Bulk upsert array of leads
+// Throws on error so callers can surface a toast — do NOT wrap in try/catch here
 async function dbSaveLeads(leads, settings) {
   if (!settings.supabaseUrl || !leads.length) return;
-  try {
-    await sbFetch(
-      settings.supabaseUrl, settings.supabaseKey,
-      "/leads", "POST", leads.map(leadToRow),
-      { "Prefer": "resolution=merge-duplicates" }
-    );
-  } catch(e) {
-    console.warn("[Supabase] Bulk save failed:", e.message);
-  }
+  await sbFetch(
+    settings.supabaseUrl, settings.supabaseKey,
+    "/leads", "POST", leads.map(leadToRow),
+    { "Prefer": "resolution=merge-duplicates" }
+  );
 }
 
 // Load ALL leads from Supabase
