@@ -116,8 +116,9 @@ const STAGES = {
 // STORAGE
 // ─────────────────────────────────────────────────────────────
 const store = {
-  getLeads:    () => { try { return JSON.parse(localStorage.getItem("hw_leads") || "null") || MOCK_LEADS; } catch { return MOCK_LEADS; } },
-  saveLeads:   (l) => localStorage.setItem("hw_leads", JSON.stringify(l)),
+  // localStorage is a read-through cache only — Supabase is the source of truth
+  getCachedLeads: () => { try { return JSON.parse(localStorage.getItem("hw_leads") || "null") || []; } catch { return []; } },
+  cacheLeads:     (l) => { try { localStorage.setItem("hw_leads", JSON.stringify(l)); } catch {} },
   getSettings: () => {
     try {
       const saved = JSON.parse(localStorage.getItem("hw_settings") || "{}");
@@ -2544,7 +2545,7 @@ function LoginScreen({ onLogin }) {
 function App() {
   const [authed, setAuthed]           = React.useState(() => !!auth.getSession());
   const [view, setView]               = React.useState("dashboard");
-  const [leads, setLeads]             = React.useState(() => store.getLeads());
+  const [leads, setLeads]             = React.useState(() => store.getCachedLeads());
   const [settings, setSettings]       = React.useState(() => store.getSettings());
   const [selectedLead, setSelectedLead]       = React.useState(null);
   const [previewLead, setPreviewLead]         = React.useState(null);
@@ -2553,6 +2554,8 @@ function App() {
   const [deploying, setDeploying]     = React.useState(new Set());
   const [toasts, setToasts]           = React.useState([]);
   const [syncStatus, setSyncStatus]   = React.useState("idle"); // idle | syncing | ok | error
+  const [leadsLoading, setLeadsLoading] = React.useState(true);
+  const [migrationLeads, setMigrationLeads] = React.useState([]); // local leads not yet in Supabase
 
   const addToast = (msg, type = "success") => {
     const id = Date.now() + Math.random();
@@ -2560,39 +2563,51 @@ function App() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4500);
   };
 
-  const saveLeads    = nl => { setLeads(nl); store.saveLeads(nl); };
+  // saveLeads: update state + cache + write changed lead to Supabase
+  const saveLeads = (nl, changedLead) => {
+    setLeads(nl);
+    store.cacheLeads(nl);
+    // Always write to Supabase — surface errors via toast (never swallow silently)
+    if (settings.supabaseUrl) {
+      const saveOp = changedLead ? dbSaveLead(changedLead, settings) : Promise.resolve();
+      saveOp.catch(e => addToast(`⚠️ Supabase save failed: ${e.message}`, "error"));
+    }
+  };
   const saveSettings = s  => { setSettings(s); store.saveSettings(s); };
 
-  // ── Sync from Supabase (manual or on settings change) ─────────────────────
-  const syncFromSupabase = React.useCallback(async (currentSettings) => {
+  // ── Load from Supabase (Supabase is source of truth) ──────────────────────
+  const syncFromSupabase = React.useCallback(async (currentSettings, silent = false) => {
     const s = currentSettings || settings;
-    if (!s.supabaseUrl) { addToast("⚠️ Configure Supabase URL in Settings first", "error"); return; }
+    if (!s.supabaseUrl) {
+      setLeadsLoading(false);
+      if (!silent) addToast("⚠️ Supabase not configured", "error");
+      return;
+    }
     setSyncStatus("syncing");
     try {
       const sbLeads = await loadAllFromSupabase(s);
-      if (sbLeads && sbLeads.length > 0) {
-        // Merge: Supabase is source of truth, keep local-only leads
+      if (sbLeads !== null) {
+        setLeads(sbLeads);
+        store.cacheLeads(sbLeads);
+        // Detect leads that exist in localStorage but NOT in Supabase → offer migration
         const sbIds = new Set(sbLeads.map(l => l.id));
-        const localOnly = store.getLeads().filter(l => !sbIds.has(l.id) && l.id.startsWith("demo_"));
-        const merged = [...sbLeads, ...localOnly];
-        saveLeads(merged);
-        addToast(`✅ Synced ${sbLeads.length} leads from Supabase`);
-      } else if (sbLeads && sbLeads.length === 0) {
-        addToast("Supabase connected — no leads yet (table empty)");
+        const orphans = store.getCachedLeads().filter(l => !sbIds.has(l.id));
+        setMigrationLeads(orphans);
+        if (!silent) addToast(`✅ ${sbLeads.length} lead${sbLeads.length !== 1 ? "s" : ""} loaded from Supabase`);
       }
       setSyncStatus("ok");
-      setTimeout(() => setSyncStatus("idle"), 5000);
+      setTimeout(() => setSyncStatus("idle"), 4000);
     } catch(e) {
       setSyncStatus("error");
-      addToast(`Sync failed: ${e.message}`, "error");
+      addToast(`Supabase sync failed: ${e.message}`, "error");
+    } finally {
+      setLeadsLoading(false);
     }
   }, [settings]);
 
-  // Auto-sync from Supabase on startup if configured
+  // On startup: always load from Supabase (silent — no toast spam on boot)
   React.useEffect(() => {
-    if (settings.supabaseUrl) {
-      syncFromSupabase(settings);
-    }
+    syncFromSupabase(store.getSettings(), true);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Poll for n8n-added leads every 30s
@@ -2606,7 +2621,7 @@ function App() {
             const merged = [...prev];
             let changed = false;
             data.leads.forEach(nl => { if (!merged.find(l => l.id === nl.id)) { merged.push(nl); changed = true; } });
-            if (changed) { store.saveLeads(merged); return merged; }
+            if (changed) { store.cacheLeads(merged); return merged; }
             return prev;
           });
         }
@@ -2643,10 +2658,8 @@ function App() {
         saveSettings(newSettings);
 
         const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: productionUrl } : l);
-        saveLeads(newLeads);
-
         const updated = newLeads.find(l => l.id === id);
-        if (settings.supabaseUrl && updated) dbSaveLead(updated, newSettings).catch(() => {});
+        saveLeads(newLeads, updated);
 
         addToast(`✅ Pushed to GitHub → ${productionUrl} (CF Pages deploying…)`);
       } catch (e) {
@@ -2677,17 +2690,15 @@ function App() {
       if (action === "reset")   return { ...l, stage: "new", previewUrl: null, sentAt: null, followUpAt: null, convertedAt: null };
       return l;
     });
-    saveLeads(newLeads);
     const updated = newLeads.find(l => l.id === id);
-    if (settings.supabaseUrl && updated) dbSaveLead(updated, settings).catch(() => {});
+    saveLeads(newLeads, updated);
   };
 
   const handleUpdate = (id, updates) => {
     const newLeads = leads.map(l => l.id === id ? { ...l, ...updates } : l);
-    saveLeads(newLeads);
-    setSelectedLead(prev => prev?.id === id ? { ...prev, ...updates } : prev);
     const updated = newLeads.find(l => l.id === id);
-    if (settings.supabaseUrl && updated) dbSaveLead(updated, settings).catch(() => {});
+    saveLeads(newLeads, updated);
+    setSelectedLead(prev => prev?.id === id ? { ...prev, ...updates } : prev);
   };
 
   const handleAddLeads = newLeads => {
@@ -2696,10 +2707,11 @@ function App() {
     newLeads.forEach(nl => {
       if (!merged.find(l => l.id === nl.id)) { merged.push(nl); truly_new.push(nl); }
     });
-    saveLeads(merged);
-    // Bulk-upsert to Supabase
+    setLeads(merged);
+    store.cacheLeads(merged);
+    // Bulk-upsert new leads to Supabase — surface errors
     if (settings.supabaseUrl && truly_new.length > 0) {
-      dbSaveLeads(truly_new, settings).catch(() => {});
+      dbSaveLeads(truly_new, settings).catch(e => addToast(`⚠️ Supabase save failed: ${e.message}`, "error"));
     }
   };
 
@@ -2786,10 +2798,43 @@ function App() {
 
       {/* Main */}
       <main className="flex-1 overflow-auto p-6 min-w-0">
-        {view === "dashboard" && <DashboardView leads={leads} settings={settings} addToast={addToast} onSync={() => syncFromSupabase(settings)} syncStatus={syncStatus} />}
-        {view === "find"      && <FindLeadsView leads={leads} onAddLeads={handleAddLeads} />}
-        {view === "pipeline"  && <PipelineView  leads={leads} onAction={handleAction} onSelect={setSelectedLead} onSendPreview={setSendPreviewLead} deploying={deploying} />}
-        {view === "sites"     && <SitesView     leads={leads} settings={settings} />}
+
+        {/* Loading state while fetching from Supabase */}
+        {leadsLoading && (
+          <div className="flex items-center justify-center h-48 gap-3 text-slate-400">
+            <svg className="animate-spin w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            <span className="text-sm font-medium">Loading leads from Supabase…</span>
+          </div>
+        )}
+
+        {/* Migration banner — localStorage leads not yet in Supabase */}
+        {!leadsLoading && migrationLeads.length > 0 && (
+          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-amber-400 font-bold text-sm">⚠️ {migrationLeads.length} lead{migrationLeads.length !== 1 ? "s" : ""} found in local storage not yet saved to Supabase</div>
+              <div className="text-slate-400 text-xs mt-1">These were created before Supabase sync was enabled. Push them now so they are not lost.</div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  dbSaveLeads(migrationLeads, settings)
+                    .then(() => { setMigrationLeads([]); addToast(`✅ Pushed ${migrationLeads.length} leads to Supabase`); })
+                    .catch(e => addToast(`Migration failed: ${e.message}`, "error"));
+                }}
+                className="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+              >Push {migrationLeads.length} lead{migrationLeads.length !== 1 ? "s" : ""} to Supabase</button>
+              <button onClick={() => setMigrationLeads([])} className="text-slate-500 hover:text-slate-300 text-xs px-3 py-2">Dismiss</button>
+            </div>
+          </div>
+        )}
+
+        {!leadsLoading && view === "dashboard" && <DashboardView leads={leads} settings={settings} addToast={addToast} onSync={() => syncFromSupabase(settings)} syncStatus={syncStatus} />}
+        {!leadsLoading && view === "find"      && <FindLeadsView leads={leads} onAddLeads={handleAddLeads} />}
+        {!leadsLoading && view === "pipeline"  && <PipelineView  leads={leads} onAction={handleAction} onSelect={setSelectedLead} onSendPreview={setSendPreviewLead} deploying={deploying} />}
+        {!leadsLoading && view === "sites"     && <SitesView     leads={leads} settings={settings} />}
         {view === "settings"  && <SettingsView  settings={settings} onSave={saveSettings} addToast={addToast} />}
       </main>
 
