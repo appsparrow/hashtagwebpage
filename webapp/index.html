@@ -458,192 +458,272 @@ body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 
   const hwpLogo = "data:image/png;base64,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";
 
-  const surveySection = !siteVisible ? `<!-- HASHTAGWEBPAGE PREVIEW BANNER — Remove this entire block when customer pays -->
+  const surveySection = !siteVisible ? `<!-- HASHTAGWEBPAGE PREVIEW BANNER + PRICING PAGE — Remove this entire block when customer pays -->
 <style>
 /* CSS fallback: nav never hidden behind banner before JS runs */
-body{padding-top:64px}
-.nav{top:64px !important}
-/* Banner */
-#hwpB{position:fixed;top:0;left:0;right:0;z-index:99999;background:#1e1b4b;font-family:'Inter',system-ui,sans-serif;padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 24px rgba(0,0,0,.45);min-height:64px}
+body{padding-top:60px}
+.nav{top:60px !important}
+
+/* ── Banner ── */
+#hwpB{position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1e1b4b,#312e81);font-family:'Inter',system-ui,sans-serif;padding:12px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 24px rgba(0,0,0,.45);min-height:60px}
 #hwpBQ{display:flex;align-items:center;gap:10px;flex-shrink:0}
-#hwpBQ img{width:22px;height:22px;filter:brightness(0) invert(1);flex-shrink:0}
-#hwpBQ span{font-size:.95rem;font-weight:700;color:#fff}
+#hwpBQ img{width:20px;height:20px;filter:brightness(0) invert(1);flex-shrink:0}
+#hwpBQ span{font-size:.88rem;font-weight:700;color:#fff}
 #hwpBtns{display:flex;gap:10px;flex-wrap:wrap}
-#hwpYes{background:#22c55e;color:#fff;border:none;border-radius:100px;padding:10px 26px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:inherit;transition:transform .12s,opacity .15s;white-space:nowrap}
-#hwpNo{background:rgba(255,255,255,.1);color:#e5e7eb;border:1.5px solid rgba(255,255,255,.25);border-radius:100px;padding:10px 26px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s,opacity .15s;white-space:nowrap}
+#hwpYes{background:#22c55e;color:#fff;border:none;border-radius:100px;padding:9px 24px;font-size:.85rem;font-weight:800;cursor:pointer;font-family:inherit;transition:transform .12s,opacity .15s;white-space:nowrap}
+#hwpNo{background:rgba(255,255,255,.1);color:#e5e7eb;border:1.5px solid rgba(255,255,255,.25);border-radius:100px;padding:9px 24px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .12s,opacity .15s;white-space:nowrap}
 #hwpYes:hover,#hwpNo:hover{transform:translateY(-1px);opacity:.88}
 #hwpX{background:none;border:none;color:rgba(255,255,255,.4);font-size:1.1rem;cursor:pointer;padding:4px;line-height:1;margin-left:auto;flex-shrink:0;font-family:inherit}
 #hwpX:hover{color:#fff}
-/* No reasons row */
-#hwpNR{display:none;width:100%;padding-top:11px;border-top:1px solid rgba(255,255,255,.12);margin-top:8px;gap:9px;flex-wrap:wrap;align-items:center}
+
+/* ── No-reasons row ── */
+#hwpNR{display:none;width:100%;padding-top:10px;border-top:1px solid rgba(255,255,255,.12);margin-top:8px;gap:9px;flex-wrap:wrap;align-items:center}
 #hwpNR.open{display:flex}
 .hwpR{background:rgba(255,255,255,.08);color:#d1d5db;border:1px solid rgba(255,255,255,.18);border-radius:100px;padding:8px 18px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s,color .15s;white-space:nowrap}
 .hwpR:hover,.hwpR.on{background:rgba(239,68,68,.35);border-color:#f87171;color:#fff}
 #hwpDel{background:#ef4444;color:#fff;border:none;border-radius:100px;padding:8px 20px;font-size:.8rem;font-weight:800;cursor:pointer;font-family:inherit;opacity:.35;pointer-events:none;transition:opacity .15s;white-space:nowrap}
 #hwpDel.on{opacity:1;pointer-events:auto}
-/* Pricing modal */
-#hwpOv{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.68);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
-#hwpOv.open{display:flex}
-#hwpM{background:#fff;border-radius:20px;width:100%;max-width:600px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.35);font-family:'Inter',system-ui,sans-serif;animation:hwpPop .25s cubic-bezier(.34,1.56,.64,1)}
-@keyframes hwpPop{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
-#hwpMH{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:20px 24px;display:flex;align-items:center;gap:12px}
-#hwpMH img{width:24px;height:24px;filter:brightness(0) invert(1);flex-shrink:0}
-#hwpMT{color:#fff;font-size:1.05rem;font-weight:800}
-#hwpMS{color:#a5b4fc;font-size:.78rem;margin-top:3px}
-#hwpMC{margin-left:auto;background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0;transition:background .15s}
-#hwpMC:hover{background:rgba(255,255,255,.28)}
-#hwpPlans{display:flex}
-.hwpPl{flex:1;padding:22px 20px 20px;display:flex;flex-direction:column;border-right:1px solid #f1f5f9}
-.hwpPl:last-child{border-right:none}
-.hwpPIcon{font-size:1.6rem;margin-bottom:6px}
-.hwpPName{font-size:.72rem;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
-.hwpPPrice{font-size:1.9rem;font-weight:900;color:#111827;line-height:1;margin-bottom:2px}
-.hwpPPrice small{font-size:.8rem;font-weight:500;color:#9ca3af}
-.hwpPTag{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:100px;margin:8px 0 12px}
-.hwpTagA{background:#fef3c7;color:#92400e}.hwpTagB{background:#ede9fe;color:#5b21b6}
-.hwpPDesc{font-size:.78rem;color:#6b7280;line-height:1.55;margin-bottom:14px}
-.hwpPF{border:1px solid #f3f4f6;border-radius:12px;overflow:hidden;margin-bottom:18px;flex:1}
-.hwpPF div{padding:9px 14px;font-size:.77rem;color:#374151;border-bottom:1px solid #f9fafb;display:flex;align-items:flex-start;gap:8px}
-.hwpPF div:last-child{border-bottom:none}
-.hwpPF div b{color:#22c55e;font-weight:900;flex-shrink:0;margin-top:1px}
-.hwpCTA{display:block;width:100%;padding:13px;border-radius:100px;font-size:.88rem;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s,transform .12s;margin-top:auto}
-.hwpCTA:hover{opacity:.88;transform:translateY(-1px)}
-.hwpCtaA{background:#f59e0b;color:#fff}.hwpCtaB{background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff}
+
+/* ── Pricing Page (full-screen, hash-routed) ── */
+#hwpPricePage{display:none;position:fixed;inset:0;z-index:999999;background:#f8fafc;overflow-y:auto;font-family:'Inter',system-ui,sans-serif}
+#hwpPricePage.open{display:block}
+
+.hwpPHero{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%);padding:60px 24px 50px;text-align:center;position:relative;overflow:hidden}
+.hwpPHero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 30% 20%,rgba(255,255,255,.08) 0%,transparent 60%);pointer-events:none}
+.hwpPHero img{width:36px;height:36px;filter:brightness(0) invert(1);margin:0 auto 16px}
+.hwpPHero h1{color:#fff;font-size:clamp(1.4rem,4vw,2rem);font-weight:900;margin:0 0 8px;letter-spacing:-.03em}
+.hwpPHero p{color:#a5b4fc;font-size:.95rem;margin:0}
+
+.hwpPBody{max-width:760px;margin:0 auto;padding:40px 24px 60px}
+.hwpPLabel{text-align:center;margin-bottom:32px}
+.hwpPLabel h2{font-size:clamp(1.3rem,3vw,1.7rem);font-weight:800;color:#1e1b4b;margin:0 0 6px}
+.hwpPLabel p{color:#6b7280;font-size:.9rem;margin:0}
+
+.hwpPGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:600px){.hwpPGrid{grid-template-columns:1fr}}
+
+.hwpPCard{background:#fff;border:2px solid #e2e8f0;border-radius:20px;padding:28px 24px 24px;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s,border-color .2s}
+.hwpPCard:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.1)}
+.hwpPCard.pop{border-color:#6366f1;box-shadow:0 8px 32px rgba(99,102,241,.15)}
+
+.hwpPCard .icon{font-size:2rem;margin-bottom:8px}
+.hwpPCard .plan-name{font-size:.72rem;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.hwpPCard .price{font-size:2.2rem;font-weight:900;color:#111827;line-height:1;margin-bottom:2px}
+.hwpPCard .price small{font-size:.8rem;font-weight:500;color:#9ca3af}
+.hwpPCard .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:4px 12px;border-radius:100px;margin:10px 0 14px}
+.tagA{background:#fef3c7;color:#92400e}
+.tagB{background:#ede9fe;color:#5b21b6}
+.hwpPCard .desc{font-size:.82rem;color:#6b7280;line-height:1.6;margin-bottom:18px}
+
+.hwpPFeats{border:1px solid #f3f4f6;border-radius:14px;overflow:hidden;margin-bottom:20px;flex:1}
+.hwpPFeats div{padding:11px 16px;font-size:.8rem;color:#374151;border-bottom:1px solid #f9fafb;display:flex;align-items:flex-start;gap:8px}
+.hwpPFeats div:last-child{border-bottom:none}
+.hwpPFeats div b{color:#22c55e;font-weight:900;flex-shrink:0}
+
+.hwpPCTA{display:block;width:100%;padding:14px;border-radius:100px;font-size:.92rem;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s,transform .12s}
+.hwpPCTA:hover{opacity:.88;transform:translateY(-1px)}
+.ctaA{background:#f59e0b;color:#fff}
+.ctaB{background:linear-gradient(90deg,#6366f1,#8b5cf6);color:#fff}
+
+.hwpPBack{display:block;margin:32px auto 0;background:none;border:1.5px solid #cbd5e1;color:#64748b;padding:10px 28px;border-radius:100px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.hwpPBack:hover{border-color:#6366f1;color:#6366f1}
+
+.hwpPFoot{text-align:center;padding:24px;color:#94a3b8;font-size:.75rem}
+.hwpPFoot a{color:#6366f1;text-decoration:none;font-weight:600}
 </style>
-<!-- Pricing modal -->
-<div id="hwpOv">
-  <div id="hwpM">
-    <div id="hwpMH">
-      <img src="${hwpLogo}" alt="" />
-      <div><div id="hwpMT">Choose Your Plan</div><div id="hwpMS">Pick what works best for you.</div></div>
-      <button id="hwpMC">&#x2715;</button>
+
+<!-- ── PRICING PAGE (hash-routed: #pricing) ── -->
+<div id="hwpPricePage">
+  <div class="hwpPHero">
+    <img src="${hwpLogo}" alt="" />
+    <h1>Get Your Website Live</h1>
+    <p>Choose the plan that works best for you</p>
+  </div>
+  <div class="hwpPBody">
+    <div class="hwpPLabel">
+      <h2>Two Simple Options</h2>
+      <p>No hidden fees. Cancel hosting anytime.</p>
     </div>
-    <div id="hwpPlans">
-      <div class="hwpPl">
-        <div class="hwpPIcon">&#x1F4B3;</div>
-        <div class="hwpPName">Own It</div>
-        <div class="hwpPPrice">$299 <small>one-time</small></div>
-        <span class="hwpPTag hwpTagA">I will host it myself</span>
-        <div class="hwpPDesc">You get the complete website files delivered. Host it anywhere you like.</div>
-        <div class="hwpPF">
-          <div><b>&#x2713;</b> Complete website files delivered</div>
-          <div><b>&#x2713;</b> Host with any provider you choose</div>
+    <div class="hwpPGrid">
+      <div class="hwpPCard">
+        <div class="icon">&#x1F4E6;</div>
+        <div class="plan-name">Own It</div>
+        <div class="price">$299 <small>one-time</small></div>
+        <span class="tag tagA">I can host it myself</span>
+        <div class="desc">Get the complete website files delivered to you. Host it anywhere you want.</div>
+        <div class="hwpPFeats">
+          <div><b>&#x2713;</b> Complete HTML, CSS, images delivered</div>
+          <div><b>&#x2713;</b> Host with any provider (GoDaddy, etc.)</div>
           <div><b>&#x2713;</b> One-time payment &mdash; yours forever</div>
-          <div><b>&#x2713;</b> 30-day email support included</div>
+          <div><b>&#x2713;</b> 30-day email support</div>
         </div>
-        <a href="${stripeUrl || 'https://hashtagwebpage.com'}" class="hwpCTA hwpCtaA">Buy Now &mdash; $299 &#x2192;</a>
+        <a id="hwpBuyLink" href="${stripeUrl || 'https://hashtagwebpage.com'}" class="hwpPCTA ctaA">Buy Now &mdash; $299 &#x2192;</a>
       </div>
-      <div class="hwpPl">
-        <div class="hwpPIcon">&#x1F3E0;</div>
-        <div class="hwpPName">Host It For Me</div>
-        <div class="hwpPPrice">$199 <small>+ $12/mo</small></div>
-        <span class="hwpPTag hwpTagB">I don&#x27;t know how / no time</span>
-        <div class="hwpPDesc">We handle everything. Your site goes live with a custom domain included.</div>
-        <div class="hwpPF">
+      <div class="hwpPCard pop">
+        <div class="icon">&#x1F680;</div>
+        <div class="plan-name">Host It For Me</div>
+        <div class="price">$199 <small>+ $12/mo</small></div>
+        <span class="tag tagB">Set it up for me &mdash; no tech needed</span>
+        <div class="desc">We handle everything. Your site goes live on a custom domain, managed by us.</div>
+        <div class="hwpPFeats">
           <div><b>&#x2713;</b> Custom domain name included</div>
-          <div><b>&#x2713;</b> We set everything up for you</div>
-          <div><b>&#x2713;</b> Updates and changes included</div>
+          <div><b>&#x2713;</b> We set up and launch everything</div>
+          <div><b>&#x2713;</b> Ongoing updates and changes included</div>
           <div><b>&#x2713;</b> Priority support</div>
         </div>
-        <a href="${stripeHostingUrl || 'https://hashtagwebpage.com'}" class="hwpCTA hwpCtaB">Get Started &#x2192;</a>
+        <a id="hwpHostLink" href="${stripeHostingUrl || 'https://hashtagwebpage.com'}" class="hwpPCTA ctaB">Get Started &mdash; $199 &#x2192;</a>
       </div>
     </div>
+    <button id="hwpPBack" class="hwpPBack">&#x2190; Back to Preview</button>
   </div>
+  <div class="hwpPFoot">Powered by <a href="https://hashtagwebpage.com" target="_blank">HashtagWebpage</a></div>
 </div>
-<!-- Preview banner -->
+
+<!-- ── PREVIEW BANNER ── -->
 <div id="hwpB">
   <div id="hwpBQ">
     <img id="hwpLogo" src="${hwpLogo}" alt="" />
-    <span>Do you want this webpage?</span>
+    <span>This is a preview &mdash; Do you want this webpage?</span>
   </div>
   <div id="hwpBtns">
     <button id="hwpYes">&#x2705; Yes, I want it!</button>
-    <button id="hwpNo">&#x274C; No, remove it</button>
+    <button id="hwpNo">&#x274C; Not for me</button>
   </div>
   <button id="hwpX" title="Dismiss">&#x2715;</button>
   <div id="hwpNR">
-    <span style="font-size:.8rem;color:#a5b4fc;font-weight:700;flex-shrink:0">Why not?</span>
-    <button class="hwpR" data-v="someone_building">I have someone building it</button>
-    <button class="hwpR" data-v="dont_need">I don&#x27;t need it</button>
+    <span style="font-size:.8rem;color:#a5b4fc;font-weight:700;flex-shrink:0">Tell us why:</span>
+    <button class="hwpR" data-v="someone_building">Already working with someone</button>
+    <button class="hwpR" data-v="dont_need">I don&#x27;t need one</button>
     <button class="hwpR" data-v="maybe_later">Maybe later</button>
-    <button id="hwpDel">Delete This Page</button>
+    <button id="hwpDel">Submit</button>
   </div>
 </div>
+
 <script>
 (function(){
-  var b=document.getElementById('hwpB');
-  var ov=document.getElementById('hwpOv');
-  var yesBtn=document.getElementById('hwpYes');
-  var noBtn=document.getElementById('hwpNo');
-  var xBtn=document.getElementById('hwpX');
-  var mc=document.getElementById('hwpMC');
-  var nr=document.getElementById('hwpNR');
-  var delBtn=document.getElementById('hwpDel');
-  var heroBtn=document.getElementById('hwp-pricing-btn');
-  var logoSrc=document.getElementById('hwpLogo').src;
+  var b=document.getElementById("hwpB");
+  var pp=document.getElementById("hwpPricePage");
+  var yesBtn=document.getElementById("hwpYes");
+  var noBtn=document.getElementById("hwpNo");
+  var xBtn=document.getElementById("hwpX");
+  var nr=document.getElementById("hwpNR");
+  var delBtn=document.getElementById("hwpDel");
+  var heroBtn=document.getElementById("hwp-pricing-btn");
+  var backBtn=document.getElementById("hwpPBack");
+  var logoSrc=document.getElementById("hwpLogo").src;
   var sel=null;
+  var slug=window.location.pathname.split("/").filter(Boolean)[0]||"unknown";
 
-  function sync(){
-    var h=b.offsetHeight;
-    document.body.style.paddingTop=h+'px';
-    var nav=document.querySelector('.nav');
-    if(nav)nav.style.top=h+'px';
+  /* Append client_reference_id to Stripe links for conversion tracking */
+  var buyLink=document.getElementById("hwpBuyLink");
+  var hostLink=document.getElementById("hwpHostLink");
+  if(buyLink&&buyLink.href.indexOf("stripe.com")!==-1){
+    buyLink.href=buyLink.href+(buyLink.href.indexOf("?")!==-1?"&":"?")+"client_reference_id="+encodeURIComponent(slug);
   }
+  if(hostLink&&hostLink.href.indexOf("stripe.com")!==-1){
+    hostLink.href=hostLink.href+(hostLink.href.indexOf("?")!==-1?"&":"?")+"client_reference_id="+encodeURIComponent(slug);
+  }
+
+  /* Layout sync — keep nav below banner */
+  function sync(){
+    if(b.style.display==="none"||pp.classList.contains("open")){
+      document.body.style.paddingTop="0";
+      var nav=document.querySelector(".nav");
+      if(nav)nav.style.top="0";
+      return;
+    }
+    var h=b.offsetHeight;
+    document.body.style.paddingTop=h+"px";
+    var nav=document.querySelector(".nav");
+    if(nav)nav.style.top=h+"px";
+  }
+
+  /* Dismiss banner */
   function dismiss(){
-    b.style.transition='opacity .3s';
-    b.style.opacity='0';
+    b.style.transition="opacity .3s";
+    b.style.opacity="0";
     setTimeout(function(){
-      b.style.display='none';
-      document.body.style.paddingTop='0';
-      var nav=document.querySelector('.nav');
-      if(nav)nav.style.top='0';
+      b.style.display="none";
+      sync();
     },300);
   }
+
+  /* Show success message in banner then fade */
   function showMsg(txt,col){
+    b.style.opacity="1";
+    b.style.display="flex";
     b.innerHTML='<div style="display:flex;align-items:center;gap:10px"><img src="'+logoSrc+'" style="width:20px;height:20px;filter:brightness(0) invert(1)" alt=""/><span style="font-size:.9rem;font-weight:700;color:'+col+'">'+txt+'</span></div>';
     sync();
     setTimeout(dismiss,3200);
   }
-  function openModal(){ov.classList.add('open');}
-  function closeModal(){ov.classList.remove('open');}
 
+  /* Show / hide pricing page */
+  function showPricing(){
+    pp.classList.add("open");
+    b.style.display="none";
+    document.body.style.overflow="hidden";
+    sync();
+    window.location.hash="pricing";
+  }
+  function hidePricing(){
+    pp.classList.remove("open");
+    b.style.display="flex";
+    b.style.opacity="1";
+    document.body.style.overflow="";
+    history.replaceState(null,"",window.location.pathname);
+    sync();
+  }
+
+  /* Init layout */
   sync();
-  window.addEventListener('resize',sync);
-  yesBtn.addEventListener('click',openModal);
-  if(heroBtn)heroBtn.addEventListener('click',openModal);
-  mc.addEventListener('click',closeModal);
-  ov.addEventListener('click',function(e){if(e.target===ov)closeModal();});
-  noBtn.addEventListener('click',function(){nr.classList.toggle('open');sync();});
-  xBtn.addEventListener('click',dismiss);
+  window.addEventListener("resize",sync);
 
-  document.querySelectorAll('.hwpR').forEach(function(r){
-    r.addEventListener('click',function(){
-      document.querySelectorAll('.hwpR').forEach(function(z){z.classList.remove('on');});
-      r.classList.add('on');
-      sel=r.getAttribute('data-v');
-      delBtn.classList.add('on');
+  /* If URL has #pricing, show pricing page immediately */
+  if(window.location.hash==="#pricing"){
+    showPricing();
+  }
+
+  /* Banner: YES → pricing page */
+  yesBtn.addEventListener("click",showPricing);
+  if(heroBtn)heroBtn.addEventListener("click",showPricing);
+
+  /* Pricing page: back button */
+  backBtn.addEventListener("click",hidePricing);
+
+  /* Banner: NO → expand reasons */
+  noBtn.addEventListener("click",function(){nr.classList.toggle("open");sync();});
+
+  /* Banner: X → dismiss */
+  xBtn.addEventListener("click",dismiss);
+
+  /* Reason pills */
+  document.querySelectorAll(".hwpR").forEach(function(r){
+    r.addEventListener("click",function(){
+      document.querySelectorAll(".hwpR").forEach(function(z){z.classList.remove("on");});
+      r.classList.add("on");
+      sel=r.getAttribute("data-v");
+      delBtn.classList.add("on");
     });
   });
 
-  delBtn.addEventListener('click',function(){
+  /* Submit reason */
+  delBtn.addEventListener("click",function(){
     if(!sel)return;
-    delBtn.textContent='Sending...';
-    delBtn.classList.remove('on');
-    var slug=window.location.pathname.split('/').filter(Boolean)[0]||'unknown';
-    fetch('https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({slug:slug,reason:sel,note:''})
+    delBtn.textContent="Sending...";
+    delBtn.classList.remove("on");
+    fetch("https://scrtgfjleifxldpceyrg.supabase.co/functions/v1/survey-response",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({slug:slug,reason:sel,note:""})
     }).then(function(){
-      showMsg('Got it! We will remove this page within 24 hours.','#86efac');
+      showMsg("Thanks for letting us know! We will remove this page.","#86efac");
     }).catch(function(){
-      delBtn.textContent='Delete This Page';
-      delBtn.classList.add('on');
+      delBtn.textContent="Submit";
+      delBtn.classList.add("on");
     });
   });
 })();
-<\/script>
-` : "";
+<\/script>` : "";
 
   const previewProtectionScript = !siteVisible ? `/* HashtagWebpage preview protection */
   document.addEventListener("contextmenu",function(e){e.preventDefault();});
@@ -2430,7 +2510,6 @@ function LoginScreen({ onLogin }) {
           <div style={{ fontSize:"28px", fontWeight:800, color:"#f1f5f9", letterSpacing:"-.03em" }}>
             <span style={{ color:"#6366f1" }}>#</span>HashtagWebpage
           </div>
-          <div class="p-3 border-b border-slate-800 flex items-center justify-between gap-2"><div class="flex items-center gap-2 min-w-0"><img src="/logo.png" alt="HashtagWebpage" class="w-7 h-7 flex-shrink-0" style="filter: brightness(0) invert(1);"><div class="min-w-0"><div class="text-white font-bold text-sm leading-tight truncate">HashtagWebpage</div><div class="text-indigo-400 text-xs">Command Center</div></div></div><button class="text-slate-500 hover:text-white text-sm flex-shrink-0">◀</button></div>
           <div style={{ fontSize:"13px", color:"#475569", marginTop:"6px" }}>CRM · Admin Access</div>
         </div>
 
