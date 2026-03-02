@@ -222,10 +222,10 @@ function leadToRow(lead) {
     preview_url:  lead.previewUrl || null,
     deploy_url:   lead.deployUrl || null,
     notes:        lead.notes || "",
-    sent_at:      lead.sentAt      ? new Date(lead.sentAt).toISOString()      : null,
-    follow_up_at: lead.followUpAt  ? new Date(lead.followUpAt).toISOString()  : null,
-    converted_at: lead.convertedAt ? new Date(lead.convertedAt).toISOString() : null,
-    found_at:     lead.foundAt     ? new Date(lead.foundAt).toISOString()     : new Date().toISOString(),
+    sent_at:      lead.sentAt      || null,
+    follow_up_at: lead.followUpAt  || null,
+    converted_at: lead.convertedAt || null,
+    found_at:     lead.foundAt     || Date.now(),
   };
 }
 
