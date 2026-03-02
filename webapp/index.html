@@ -221,6 +221,7 @@ function leadToRow(lead) {
     maps_url:     lead.mapsUrl || null,
     preview_url:  lead.previewUrl || null,
     deploy_url:   lead.deployUrl || null,
+    hw_id:        lead.hwId || null,
     notes:        lead.notes || "",
     sent_at:      lead.sentAt      || null,
     follow_up_at: lead.followUpAt  || null,
@@ -246,6 +247,7 @@ function rowToLead(row) {
     mapsUrl:     row.maps_url || "#",
     previewUrl:  row.preview_url || null,
     deployUrl:   row.deploy_url || null,
+    hwId:        row.hw_id || null,
     notes:       row.notes || "",
     sentAt:      row.sent_at      ? new Date(row.sent_at).getTime()      : null,
     followUpAt:  row.follow_up_at ? new Date(row.follow_up_at).getTime() : null,
@@ -351,6 +353,17 @@ function slugify(name, city) {
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+// Generate a short human-readable webpage ID: HW + MMDD + 4 random uppercase chars
+// e.g. HW03024KPQ — unique per lead, used in Stripe client_reference_id and client comms
+function genHwId() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no confusable O/0/I/1
+  const rand = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `HW${mm}${dd}${rand}`;
+}
+
 // ── Deploy via Supabase Edge Function (avoids browser CORS issues with GitHub API) ──
 async function deployViaGitHub(slug, html, settings) {
   const { githubOwner, githubRepo, githubToken, cfPagesDomain, supabaseUrl, supabaseKey } = settings;
@@ -379,7 +392,7 @@ async function deployViaGitHub(slug, html, settings) {
 
 function generateSiteHTML(lead, opts = {}) {
   const { name, category, phone = "Call us for a quote", address, city, rating, reviewCount: reviews } = lead;
-  const { siteVisible = true, siteUrl = "", stripeUrl = "", stripeHostingUrl = "" } = opts;
+  const { siteVisible = true, siteUrl = "", stripeUrl = "", stripeHostingUrl = "", hwId = "" } = opts;
 
   // Category slug for image/logo lookup
   const catSlug  = category.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
@@ -575,7 +588,7 @@ body{padding-top:60px}
 </div>
 
 <!-- ── PREVIEW BANNER ── -->
-<div id="hwpB">
+<div id="hwpB" data-hwid="${hwId}">
   <div id="hwpBQ">
     <img id="hwpLogo" src="${hwpLogo}" alt="" />
     <span>This is a preview &mdash; Do you want this webpage?</span>
@@ -608,15 +621,17 @@ body{padding-top:60px}
   var logoSrc=document.getElementById("hwpLogo").src;
   var sel=null;
   var slug=window.location.pathname.split("/").filter(Boolean)[0]||"unknown";
+  /* hw_id baked in at deploy time — falls back to URL slug if missing */
+  var hwid=b.dataset.hwid||slug;
 
-  /* Append client_reference_id to Stripe links for conversion tracking */
+  /* Append client_reference_id (hw_id) to Stripe links for conversion tracking */
   var buyLink=document.getElementById("hwpBuyLink");
   var hostLink=document.getElementById("hwpHostLink");
   if(buyLink&&buyLink.href.indexOf("stripe.com")!==-1){
-    buyLink.href=buyLink.href+(buyLink.href.indexOf("?")!==-1?"&":"?")+"client_reference_id="+encodeURIComponent(slug);
+    buyLink.href=buyLink.href+(buyLink.href.indexOf("?")!==-1?"&":"?")+"client_reference_id="+encodeURIComponent(hwid);
   }
   if(hostLink&&hostLink.href.indexOf("stripe.com")!==-1){
-    hostLink.href=hostLink.href+(hostLink.href.indexOf("?")!==-1?"&":"?")+"client_reference_id="+encodeURIComponent(slug);
+    hostLink.href=hostLink.href+(hostLink.href.indexOf("?")!==-1?"&":"?")+"client_reference_id="+encodeURIComponent(hwid);
   }
 
   /* Layout sync — keep nav below banner */
@@ -1050,7 +1065,10 @@ function LeadCard({ lead, onAction, onSelect, onSendPreview, deploying }) {
           {lead.rating > 0 && <StarRating rating={lead.rating} />}
           {lead.reviewCount > 0 && <span className="text-xs text-slate-500">({lead.reviewCount})</span>}
         </div>
-        <span className="text-xs text-slate-600">{daysAgo === 0 ? "Today" : `${daysAgo}d ago`}</span>
+        <div className="flex items-center gap-2">
+          {lead.hwId && <span className="text-xs font-mono text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded">{lead.hwId}</span>}
+          <span className="text-xs text-slate-600">{daysAgo === 0 ? "Today" : `${daysAgo}d ago`}</span>
+        </div>
       </div>
 
       {followUpDue && (
@@ -1107,6 +1125,7 @@ function LeadModal({ lead, onClose, onAction, onUpdate, onPreview, onSendPreview
             <div className="text-sm text-slate-400">{lead.category} · {lead.city}</div>
           </div>
           <div className="flex items-center gap-2">
+            {lead.hwId && <span className="text-xs font-mono text-slate-400 bg-slate-700 px-2 py-0.5 rounded border border-slate-600" title="Webpage ID — use this when referencing with clients or Stripe">{lead.hwId}</span>}
             <Badge stage={lead.stage} />
             <button onClick={onClose} className="text-slate-400 hover:text-white text-xl ml-2">×</button>
           </div>
@@ -1857,6 +1876,7 @@ function FindLeadsView({ leads, onAddLeads }) {
       } else {
         setResults(places.map(p => ({
           id: p.id,
+          hwId: genHwId(),
           name: p.displayName?.text || "Unknown Business",
           category, city: city.trim(),
           phone: p.nationalPhoneNumber || null,
@@ -1879,11 +1899,11 @@ function FindLeadsView({ leads, onAddLeads }) {
   const loadDemo = () => {
     const c = city.trim() || "Atlanta, GA";
     setResults([
-      { id:"demo_"+Date.now(), name:"Tom's "+category+" Co", category, city:c,
+      { id:"demo_"+Date.now(), hwId:genHwId(), name:"Tom's "+category+" Co", category, city:c,
         phone:"(555) 123-4567", address:"123 Main St, "+c, rating:4.6, reviewCount:22,
         hasWebsite:false, stage:"new", mapsUrl:"#", foundAt:Date.now(),
         sentAt:null, followUpAt:null, convertedAt:null, previewUrl:null, email:null, notes:"" },
-      { id:"demo2_"+Date.now(), name:c.split(",")[0]+" "+category+" Services", category, city:c,
+      { id:"demo2_"+Date.now(), hwId:genHwId(), name:c.split(",")[0]+" "+category+" Services", category, city:c,
         phone:"(555) 987-6543", address:"456 Oak Ave, "+c, rating:4.8, reviewCount:67,
         hasWebsite:false, stage:"new", mapsUrl:"#", foundAt:Date.now(),
         sentAt:null, followUpAt:null, convertedAt:null, previewUrl:null, email:null, notes:"" }
@@ -2645,7 +2665,7 @@ function App() {
       const domain         = settings.cfPagesDomain || "hashtagwebpage.com";
       const siteUrl        = `https://${domain}/${slug}`;
       // noindex + preview banner on ALL non-customer sites — removed only when lead pays and is redeployed
-      const html           = generateSiteHTML(lead, { siteVisible: lead.stage === "customer", siteUrl, stripeUrl: settings.stripePaymentUrl || "", stripeHostingUrl: settings.stripeHostingUrl || "" });
+      const html           = generateSiteHTML(lead, { siteVisible: lead.stage === "customer", siteUrl, stripeUrl: settings.stripePaymentUrl || "", stripeHostingUrl: settings.stripeHostingUrl || "", hwId: lead.hwId || "" });
 
       setDeploying(prev => new Set([...prev, id]));
       try {
@@ -2654,7 +2674,7 @@ function App() {
         const newSettings = { ...settings };
         saveSettings(newSettings);
 
-        const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: productionUrl } : l);
+        const newLeads = leads.map(l => l.id === id ? { ...l, stage: "site_generated", previewUrl: productionUrl, deployUrl: productionUrl } : l);
         const updated = newLeads.find(l => l.id === id);
         saveLeads(newLeads, updated);
 
